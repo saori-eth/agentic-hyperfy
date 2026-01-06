@@ -4,15 +4,15 @@ export class Collections extends System {
   constructor(world) {
     super(world)
     this.collections = []
-    this.devApps = []
+    this.localApps = []
   }
 
-  init({ collections, devApps }) {
+  init({ collections, localApps }) {
     if (collections) {
       this.deserialize(collections)
     }
-    if (devApps) {
-      this.devApps = devApps
+    if (localApps) {
+      this.localApps = localApps
     }
   }
 
@@ -20,17 +20,17 @@ export class Collections extends System {
     return this.collections.find(coll => coll.id === id)
   }
 
-  getDevApp(id) {
-    return this.devApps.find(app => app.id === id)
+  getLocalApp(id) {
+    return this.localApps.find(app => app.id === id)
   }
 
-  updateDevApp(appName, blueprint) {
-    const existing = this.devApps.find(app => app.id === appName)
+  updateLocalApp(appName, blueprint) {
+    const existing = this.localApps.find(app => app.id === appName)
     if (existing) {
       existing.blueprints = [blueprint]
       existing.name = blueprint.name || appName
     } else {
-      this.devApps.push({
+      this.localApps.push({
         id: appName,
         name: blueprint.name || appName,
         blueprints: [blueprint],
@@ -38,8 +38,8 @@ export class Collections extends System {
     }
   }
 
-  removeDevApp(appName) {
-    this.devApps = this.devApps.filter(app => app.id !== appName)
+  removeLocalApp(appName) {
+    this.localApps = this.localApps.filter(app => app.id !== appName)
   }
 
   deserialize(data) {
@@ -52,6 +52,6 @@ export class Collections extends System {
 
   destroy() {
     this.collections = []
-    this.devApps = []
+    this.localApps = []
   }
 }

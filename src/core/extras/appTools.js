@@ -1,24 +1,24 @@
 import { cloneDeep } from 'lodash-es'
 
-function getDevAppNameFromUrl(url) {
+function getAppNameFromUrl(url) {
   if (!url || typeof url !== 'string') return null
-  const match = url.match(/^devapp:\/\/([^/]+)\//)
+  const match = url.match(/^app:\/\/([^/]+)\//)
   return match ? match[1] : null
 }
 
-function getDevAppNameFromBlueprint(blueprint) {
+function getAppNameFromBlueprint(blueprint) {
   if (!blueprint) return null
   // Prefer script (most reliable)
-  const fromScript = getDevAppNameFromUrl(blueprint.script)
+  const fromScript = getAppNameFromUrl(blueprint.script)
   if (fromScript) return fromScript
-  const fromModel = getDevAppNameFromUrl(blueprint.model)
+  const fromModel = getAppNameFromUrl(blueprint.model)
   if (fromModel) return fromModel
   const imageUrl = typeof blueprint.image === 'string' ? blueprint.image : blueprint.image && blueprint.image.url
-  const fromImage = getDevAppNameFromUrl(imageUrl)
+  const fromImage = getAppNameFromUrl(imageUrl)
   if (fromImage) return fromImage
   for (const value of Object.values(blueprint.props || {})) {
     if (value?.url) {
-      const fromProp = getDevAppNameFromUrl(value.url)
+      const fromProp = getAppNameFromUrl(value.url)
       if (fromProp) return fromProp
     }
   }
@@ -64,11 +64,11 @@ export async function exportApp(blueprint, resolveFile) {
     }
   }
 
-  // Dev apps: bundle apps/<appName>/assets/** for portability
-  const devAppName = getDevAppNameFromBlueprint(blueprint)
-  if (devAppName && typeof fetch !== 'undefined') {
+  // Local apps: bundle apps/<appName>/assets/** for portability
+  const appName = getAppNameFromBlueprint(blueprint)
+  if (appName && typeof fetch !== 'undefined') {
     try {
-      const resp = await fetch(`/api/dev-app-assets/${encodeURIComponent(devAppName)}`)
+      const resp = await fetch(`/api/app-assets/${encodeURIComponent(appName)}`)
       if (resp.ok) {
         const data = await resp.json()
         const files = Array.isArray(data?.files) ? data.files : []
@@ -76,7 +76,7 @@ export async function exportApp(blueprint, resolveFile) {
         for (const relPath of files) {
           if (!relPath || typeof relPath !== 'string') continue
           // manifest returns paths relative to app root, e.g. "assets/foo.png"
-          const url = `devapp://${devAppName}/${relPath.replace(/^\.\//, '')}`
+          const url = `app://${appName}/${relPath.replace(/^\.\//, '')}`
           if (existingUrls.has(url)) continue
           assets.push({
             type: 'file',
@@ -86,10 +86,10 @@ export async function exportApp(blueprint, resolveFile) {
           existingUrls.add(url)
         }
       } else {
-        console.warn('[exportApp] dev app assets manifest not available:', resp.status)
+        console.warn('[exportApp] app assets manifest not available:', resp.status)
       }
     } catch (err) {
-      console.warn('[exportApp] failed to fetch dev app assets manifest', err)
+      console.warn('[exportApp] failed to fetch app assets manifest', err)
     }
   }
 

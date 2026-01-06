@@ -1064,26 +1064,26 @@ export class ClientBuilder extends System {
   async addApp(file, transform) {
     const info = await importApp(file)
 
-    const isDevappUrl = url => typeof url === 'string' && url.startsWith('devapp://')
-    const getDevAppName = url => {
-      const match = typeof url === 'string' ? url.match(/^devapp:\/\/([^/]+)\//) : null
+    const isAppUrl = url => typeof url === 'string' && url.startsWith('app://')
+    const getAppName = url => {
+      const match = typeof url === 'string' ? url.match(/^app:\/\/([^/]+)\//) : null
       return match ? match[1] : null
     }
-    const getDevRelPath = url => {
-      const match = typeof url === 'string' ? url.match(/^devapp:\/\/[^/]+\/(.+)$/) : null
+    const getAppRelPath = url => {
+      const match = typeof url === 'string' ? url.match(/^app:\/\/[^/]+\/(.+)$/) : null
       return match ? match[1] : null
     }
 
-    // If this .hyp came from a dev app export, rewrite devapp:// URLs to portable asset:// URLs
-    const devAppName =
-      getDevAppName(info.blueprint?.script) ||
-      getDevAppName(info.blueprint?.model) ||
-      getDevAppName(
+    // If this .hyp came from a local app export, rewrite app:// URLs to portable asset:// URLs
+    const appName =
+      getAppName(info.blueprint?.script) ||
+      getAppName(info.blueprint?.model) ||
+      getAppName(
         typeof info.blueprint?.image === 'string' ? info.blueprint.image : info.blueprint?.image?.url
       ) ||
-      getDevAppName(info.assets?.find(a => isDevappUrl(a.url))?.url)
+      getAppName(info.assets?.find(a => isAppUrl(a.url))?.url)
 
-    const isBundledDevApp = Boolean(devAppName)
+    const isBundledApp = Boolean(appName)
     const supportedInsertTypes = new Set([
       'hdr',
       'image',
@@ -1097,11 +1097,11 @@ export class ClientBuilder extends System {
     ])
 
     let assetMap = null
-    if (isBundledDevApp) {
+    if (isBundledApp) {
       assetMap = {}
       for (const asset of info.assets) {
-        if (!isDevappUrl(asset.url)) continue
-        const rel = getDevRelPath(asset.url)
+        if (!isAppUrl(asset.url)) continue
+        const rel = getAppRelPath(asset.url)
         if (!rel) continue
         const hash = await hashFile(asset.file)
         const ext = asset.file.name.split('.').pop()?.toLowerCase() || 'bin'
@@ -1112,8 +1112,8 @@ export class ClientBuilder extends System {
       }
 
       const rewriteUrl = url => {
-        if (!isDevappUrl(url)) return url
-        const rel = getDevRelPath(url)
+        if (!isAppUrl(url)) return url
+        const rel = getAppRelPath(url)
         if (!rel) return url
         return assetMap[rel] || url
       }

@@ -189,8 +189,8 @@ export class ServerLoader extends System {
   /**
    * Clear cached assets for a dev app (for hot reload)
    */
-  clearDevApp(appName) {
-    const prefix = `devapp://${appName}/`
+  clearLocalApp(appName) {
+    const prefix = `app://${appName}/`
     for (const [key, _] of this.promises) {
       if (key.includes(prefix)) {
         this.promises.delete(key)

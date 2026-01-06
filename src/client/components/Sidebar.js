@@ -895,35 +895,35 @@ function Apps({ world, hidden }) {
 function Add({ world, hidden }) {
   // note: multiple collections are supported by the engine but for now we just use the 'default' collection.
   const collection = world.collections.get('default')
-  const [devApps, setDevApps] = useState(() => world.collections.devApps || [])
+  const [localApps, setLocalApps] = useState(() => world.collections.localApps || [])
   const span = 4
   const gap = '0.5rem'
 
-  // Listen for dev app changes
+  // Listen for local app changes
   useEffect(() => {
-    const onDevAppReloaded = () => {
-      setDevApps([...world.collections.devApps])
+    const onLocalAppReloaded = () => {
+      setLocalApps([...world.collections.localApps])
     }
-    const onDevAppRemoved = () => {
-      setDevApps([...world.collections.devApps])
+    const onLocalAppRemoved = () => {
+      setLocalApps([...world.collections.localApps])
     }
-    world.on('devAppReloaded', onDevAppReloaded)
-    world.on('devAppRemoved', onDevAppRemoved)
+    world.on('localAppReloaded', onLocalAppReloaded)
+    world.on('localAppRemoved', onLocalAppRemoved)
     return () => {
-      world.off('devAppReloaded', onDevAppReloaded)
-      world.off('devAppRemoved', onDevAppRemoved)
+      world.off('localAppReloaded', onLocalAppReloaded)
+      world.off('localAppRemoved', onLocalAppRemoved)
     }
   }, [])
 
-  const add = (blueprint, isDevApp = false) => {
+  const add = (blueprint, isLocalApp = false) => {
     blueprint = cloneDeep(blueprint)
-    // Dev apps keep their original ID so hot reload works on all instances
-    if (!isDevApp) {
+    // Local apps keep their original ID so hot reload works on all instances
+    if (!isLocalApp) {
       blueprint.id = uuid()
     }
-    blueprint.version = isDevApp ? Date.now() : 0
+    blueprint.version = isLocalApp ? Date.now() : 0
 
-    // For dev apps, check if blueprint already exists
+    // For local apps, check if blueprint already exists
     const existingBlueprint = world.blueprints.get(blueprint.id)
     if (!existingBlueprint) {
       world.blueprints.add(blueprint, true)
@@ -1020,12 +1020,12 @@ function Add({ world, hidden }) {
           <div className='add-title'>Add</div>
         </div>
         <div className='add-content noscrollbar'>
-          {devApps.length > 0 && (
+          {localApps.length > 0 && (
             <>
-              <div className='add-section-label'>Dev Apps</div>
+              <div className='add-section-label'>Apps</div>
               <div className='add-items'>
-                {devApps.flatMap(devApp =>
-                  devApp.blueprints.map(blueprint => (
+                {localApps.flatMap(localApp =>
+                  localApp.blueprints.map(blueprint => (
                     <div className='add-item' key={blueprint.id} onClick={() => add(blueprint, true)}>
                       <div
                         className='add-item-image dev'
@@ -1040,7 +1040,7 @@ function Add({ world, hidden }) {
               </div>
             </>
           )}
-          <div className='add-section-label'>Collection</div>
+          <div className='add-section-label'>Library</div>
           <div className='add-items'>
             {collection.blueprints.map(blueprint => (
               <div className='add-item' key={blueprint.id} onClick={() => add(blueprint)}>

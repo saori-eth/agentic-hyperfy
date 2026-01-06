@@ -134,13 +134,13 @@ export class ClientNetwork extends System {
     }
     this.world.loader.execPreload()
 
-    // Set devApps URL for resolving devapp:// protocol
-    this.world.devAppsUrl = data.devAppsUrl
+    // Set localApps URL for resolving app:// protocol
+    this.world.localAppsUrl = data.localAppsUrl
 
     this.world.collections.deserialize(data.collections)
-    // Set dev apps for local development
-    if (data.devApps && data.devApps.length > 0) {
-      this.world.collections.devApps = data.devApps
+    // Set local apps (project apps folder)
+    if (data.localApps && data.localApps.length > 0) {
+      this.world.collections.localApps = data.localApps
     }
     this.world.settings.deserialize(data.settings)
     this.world.settings.setHasAdminCode(data.hasAdminCode)
@@ -220,15 +220,15 @@ export class ClientNetwork extends System {
     this.world.emit('kick', code)
   }
 
-  onDevAppReloaded = data => {
+  onLocalAppReloaded = data => {
     const { appName, blueprint } = data
-    console.log(`[devApps] reloading: ${appName}`, blueprint)
+    console.log(`[localApps] reloading: ${appName}`, blueprint)
 
     // Clear loader cache for this app's assets so they get refetched
-    this.world.loader.clearDevApp?.(appName)
+    this.world.loader.clearLocalApp?.(appName)
 
-    // Update collections devApps list
-    this.world.collections.updateDevApp(appName, blueprint)
+    // Update collections localApps list
+    this.world.collections.updateLocalApp(appName, blueprint)
 
     // Check if blueprint exists in registry
     const existing = this.world.blueprints.get(blueprint.id)
@@ -240,7 +240,7 @@ export class ClientNetwork extends System {
       // Rebuild all entities using this blueprint
       for (const [_, entity] of this.world.entities.items) {
         if (entity.data.blueprint === blueprint.id) {
-          console.log(`[devApps] rebuilding entity: ${entity.data.id}`)
+          console.log(`[localApps] rebuilding entity: ${entity.data.id}`)
           entity.data.state = {}
           entity.build()
         }
@@ -248,22 +248,22 @@ export class ClientNetwork extends System {
       
       this.world.blueprints.emit('modify', blueprint)
     } else {
-      console.log(`[devApps] blueprint not found in registry: ${blueprint.id}`)
+      console.log(`[localApps] blueprint not found in registry: ${blueprint.id}`)
     }
 
     // Emit event for UI updates
-    this.world.emit('devAppReloaded', { appName, blueprint })
+    this.world.emit('localAppReloaded', { appName, blueprint })
   }
 
-  onDevAppRemoved = data => {
+  onLocalAppRemoved = data => {
     const { appName } = data
-    console.log(`[devApps] removed: ${appName}`)
+    console.log(`[localApps] removed: ${appName}`)
 
     // Remove from collections
-    this.world.collections.removeDevApp(appName)
+    this.world.collections.removeLocalApp(appName)
 
     // Emit event for UI updates
-    this.world.emit('devAppRemoved', { appName })
+    this.world.emit('localAppRemoved', { appName })
   }
 
   onClose = code => {

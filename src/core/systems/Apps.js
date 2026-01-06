@@ -325,18 +325,18 @@ export class Apps extends System {
           return assetMap[cleanPath] || relativePath
         }
 
-        // Resolve relative asset paths for dev apps
-        // e.g., './assets/image.png' -> 'devapp://example/assets/image.png'
-        // Check if the app's script is a devapp:// URL
+        // Resolve relative asset paths for local apps
+        // e.g., './assets/image.png' -> 'app://example/assets/image.png'
+        // Check if the app's script is an app:// URL
         const scriptUrl = entity.blueprint?.script
-        if (scriptUrl && scriptUrl.startsWith('devapp://')) {
-          // Extract app name from devapp://appname/...
-          const match = scriptUrl.match(/^devapp:\/\/([^/]+)\//)
+        if (scriptUrl && scriptUrl.startsWith('app://')) {
+          // Extract app name from app://appname/...
+          const match = scriptUrl.match(/^app:\/\/([^/]+)\//)
           if (match) {
             const appName = match[1]
             // Remove leading ./ if present
             const cleanPath = relativePath.replace(/^\.\//, '')
-            return `devapp://${appName}/${cleanPath}`
+            return `app://${appName}/${cleanPath}`
           }
         }
 

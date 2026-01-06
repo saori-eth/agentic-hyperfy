@@ -1,12 +1,12 @@
-# Dev Apps
+# Apps (local development)
 
 This directory contains local development apps that can be edited in your IDE with hot-reload support.
 
 ## Setup
 
-1. Add `DEV_APPS=true` to your `.env` file
+1. Create an `apps/` folder (this repo already includes it)
 2. Restart the server
-3. Dev apps will appear in the "Add" panel under "Dev Apps"
+3. Your apps will appear in the "Add" panel under "Apps"
 
 ## App Structure
 
@@ -143,7 +143,7 @@ Use relative paths starting with `./`:
 }
 ```
 
-These are resolved to `devapp://app-name/...` URLs internally.
+These are resolved to `app://app-name/...` URLs internally.
 
 ## Tips
 

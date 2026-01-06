@@ -16,7 +16,7 @@ import { getDB } from './db'
 import { Storage } from './Storage'
 import { assets } from './assets'
 import { collections } from './collections'
-import { devApps } from './devApps'
+import { localApps } from './localApps'
 import { cleaner } from './cleaner'
 
 const rootDir = path.join(__dirname, '../')
@@ -72,8 +72,8 @@ await assets.init({ rootDir, worldDir })
 // init collections
 await collections.init({ rootDir, worldDir })
 
-// init dev apps (local development)
-await devApps.init({ rootDir, worldDir })
+// init local apps (default development workflow)
+await localApps.init({ rootDir, worldDir })
 
 // init db
 const db = await getDB({ worldDir })
@@ -89,26 +89,26 @@ const world = createServerWorld()
 await world.init({
   assetsDir: assets.dir,
   assetsUrl: assets.url,
-  devAppsDir: devApps.dir,
-  // Use base URL without /assets suffix for dev-assets
-  devAppsUrl: devApps.dir ? process.env.ASSETS_BASE_URL.replace(/\/assets\/?$/, '/dev-assets') : null,
+  localAppsDir: localApps.dir,
+  // Use base URL without /assets suffix for app-assets
+  localAppsUrl: localApps.dir ? process.env.ASSETS_BASE_URL.replace(/\/assets\/?$/, '/app-assets') : null,
   db,
   assets,
   storage,
   collections: collections.list,
-  devApps: devApps.list,
+  localApps: localApps.list,
 })
 
-// Set world reference on devApps for hot reload
-devApps.setWorld(world)
+// Set world reference on localApps for hot reload
+localApps.setWorld(world)
 
 fastify.register(cors)
 fastify.register(compress)
 
-// Dev apps: manifest of files under apps/<appName>/assets/**
-// Used to make exported .hyp files portable by bundling dev assets.
-if (world.devAppsDir) {
-  fastify.get('/api/dev-app-assets/:appName', async (req, reply) => {
+// Local apps: manifest of files under apps/<appName>/assets/**
+// Used to make exported .hyp files portable by bundling app assets.
+if (world.localAppsDir) {
+  fastify.get('/api/app-assets/:appName', async (req, reply) => {
     const appName = String(req.params?.appName || '').trim()
 
     // Prevent path traversal / weird names
@@ -116,7 +116,7 @@ if (world.devAppsDir) {
       return reply.code(400).send({ error: 'invalid appName' })
     }
 
-    const appRoot = path.join(world.devAppsDir, appName)
+    const appRoot = path.join(world.localAppsDir, appName)
     const assetsRoot = path.join(appRoot, 'assets')
 
     if (!fs.existsSync(appRoot)) {
@@ -151,7 +151,7 @@ if (world.devAppsDir) {
     try {
       walk(assetsRoot)
     } catch (err) {
-      console.error('[devApps] failed to build assets manifest', err)
+      console.error('[localApps] failed to build assets manifest', err)
       return reply.code(500).send({ error: 'failed to build manifest' })
     }
 
@@ -196,10 +196,10 @@ if (world.assetsDir) {
   })
 }
 // Serve dev apps assets (local development only)
-if (world.devAppsDir) {
+if (world.localAppsDir) {
   fastify.register(statics, {
-    root: world.devAppsDir,
-    prefix: '/dev-assets/',
+    root: world.localAppsDir,
+    prefix: '/app-assets/',
     decorateReply: false,
     setHeaders: res => {
       // Dev assets should not be cached for hot reload
@@ -321,13 +321,13 @@ console.log(`server listening on port ${port}`)
 
 // Graceful shutdown
 process.on('SIGINT', async () => {
-  devApps.destroy()
+  localApps.destroy()
   await fastify.close()
   process.exit(0)
 })
 
 process.on('SIGTERM', async () => {
-  devApps.destroy()
+  localApps.destroy()
   await fastify.close()
   process.exit(0)
 })

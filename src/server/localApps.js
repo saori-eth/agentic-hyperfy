@@ -3,9 +3,9 @@ import path from 'path'
 import chokidar from 'chokidar'
 
 /**
- * Apps System
+ * LocalApps System
  *
- * Loads apps from the /apps directory.
+ * Loads apps from the /apps directory (default development workflow).
  * Each app is a folder with:
  *   - blueprint.json (app configuration with relative paths)
  *   - index.js (the script)
@@ -14,7 +14,7 @@ import chokidar from 'chokidar'
  * Relative paths in blueprint.json are resolved to app://<app-name>/...
  * which are then served via /app-assets/ static route.
  */
-class Apps {
+class LocalApps {
   constructor() {
     this.list = []
     this.blueprints = new Map()
@@ -28,11 +28,11 @@ class Apps {
 
     // Check if apps directory exists
     if (!fs.existsSync(this.dir)) {
-      console.log('[apps] no /apps directory found, skipping')
+      console.log('[localApps] no /apps directory found, skipping')
       return
     }
 
-    console.log('[apps] initializing from', this.dir)
+    console.log('[localApps] initializing from', this.dir)
     await this.scanApps()
   }
 
@@ -49,7 +49,7 @@ class Apps {
 
       const blueprintPath = path.join(folderPath, 'blueprint.json')
       if (!fs.existsSync(blueprintPath)) {
-        console.warn(`[apps] ${folderName}: missing blueprint.json, skipping`)
+        console.warn(`[localApps] ${folderName}: missing blueprint.json, skipping`)
         continue
       }
 
@@ -61,9 +61,9 @@ class Apps {
           blueprints: [blueprint],
         })
         this.blueprints.set(folderName, blueprint)
-        console.log(`[apps] loaded: ${folderName}`)
+        console.log(`[localApps] loaded: ${folderName}`)
       } catch (err) {
-        console.error(`[apps] ${folderName}: failed to load`, err.message)
+        console.error(`[localApps] ${folderName}: failed to load`, err.message)
       }
     }
   }
@@ -155,7 +155,7 @@ class Apps {
   startWatching() {
     if (!this.dir || !this.world) return
 
-    console.log('[apps] starting file watcher')
+    console.log('[localApps] starting file watcher')
 
     // Debounce timers per app to handle rapid file changes during creation
     this.reloadTimers = new Map()
@@ -199,16 +199,16 @@ class Apps {
     const folderPath = path.join(this.dir, appName)
     const blueprintPath = path.join(folderPath, 'blueprint.json')
 
-    console.log(`[apps] reloading: ${appName}`)
+    console.log(`[localApps] reloading: ${appName}`)
 
     // Check if the app still exists
     if (!fs.existsSync(blueprintPath)) {
-      console.log(`[apps] ${appName}: removed`)
+      console.log(`[localApps] ${appName}: removed`)
       this.blueprints.delete(appName)
       this.list = this.list.filter(c => c.id !== appName)
       // Notify clients to remove the app
       if (this.world?.network) {
-        this.world.network.send('appRemoved', { appName })
+        this.world.network.send('localAppRemoved', { appName })
       }
       return
     }
@@ -218,7 +218,7 @@ class Apps {
       const content = fs.readFileSync(blueprintPath, 'utf8')
       JSON.parse(content)
     } catch (err) {
-      console.warn(`[apps] ${appName}: waiting for valid blueprint.json...`)
+      console.warn(`[localApps] ${appName}: waiting for valid blueprint.json...`)
       return // File is still being written, will retry on next change
     }
 
@@ -231,6 +231,7 @@ class Apps {
       const existingIndex = this.list.findIndex(c => c.id === appName)
       if (existingIndex >= 0) {
         this.list[existingIndex].blueprints = [blueprint]
+        this.list[existingIndex].name = blueprint.name || appName
       } else {
         this.list.push({
           id: appName,
@@ -241,7 +242,7 @@ class Apps {
 
       // Clear loader cache for this app's assets
       if (this.world?.loader) {
-        this.world.loader.clearApp(appName)
+        this.world.loader.clearLocalApp?.(appName)
       }
 
       // Update blueprint in the world's registry (only if it already exists)
@@ -254,12 +255,12 @@ class Apps {
 
       // Notify clients to reload
       if (this.world?.network) {
-        this.world.network.send('appReloaded', { appName, blueprint })
+        this.world.network.send('localAppReloaded', { appName, blueprint })
       }
 
-      console.log(`[apps] ${appName}: reloaded`)
+      console.log(`[localApps] ${appName}: reloaded`)
     } catch (err) {
-      console.error(`[apps] ${appName}: failed to reload -`, err.message)
+      console.error(`[localApps] ${appName}: failed to reload -`, err.message)
     }
   }
 
@@ -283,5 +284,6 @@ class Apps {
   }
 }
 
-export const apps = new Apps()
+export const localApps = new LocalApps()
+
 

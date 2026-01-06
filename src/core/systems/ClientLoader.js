@@ -362,10 +362,10 @@ export class ClientLoader extends System {
   /**
    * Clear cached assets for a dev app (for hot reload)
    */
-  clearDevApp(appName) {
-    // Match both the original devapp:// URL and the resolved HTTP URL
-    const devappPrefix = `devapp://${appName}/`
-    const httpPattern = `/dev-assets/${appName}/`
+  clearLocalApp(appName) {
+    // Match both the original app:// URL and the resolved HTTP URL
+    const appPrefix = `app://${appName}/`
+    const httpPattern = `/app-assets/${appName}/`
     
     let clearedFiles = 0
     let clearedPromises = 0
@@ -373,27 +373,29 @@ export class ClientLoader extends System {
     
     // Clear from files cache (stores resolved URLs)
     for (const [key, _] of this.files) {
-      if (key.includes(devappPrefix) || key.includes(httpPattern)) {
+      if (key.includes(appPrefix) || key.includes(httpPattern)) {
         this.files.delete(key)
         clearedFiles++
       }
     }
     // Clear from promises cache
     for (const [key, _] of this.promises) {
-      if (key.includes(devappPrefix) || key.includes(httpPattern)) {
+      if (key.includes(appPrefix) || key.includes(httpPattern)) {
         this.promises.delete(key)
         clearedPromises++
       }
     }
     // Clear from results cache (separately since results may exist without promises)
     for (const [key, _] of this.results) {
-      if (key.includes(devappPrefix) || key.includes(httpPattern)) {
+      if (key.includes(appPrefix) || key.includes(httpPattern)) {
         this.results.delete(key)
         clearedResults++
       }
     }
     
-    console.log(`[devApps] cleared cache for ${appName}: ${clearedFiles} files, ${clearedPromises} promises, ${clearedResults} results`)
+    console.log(
+      `[localApps] cleared cache for ${appName}: ${clearedFiles} files, ${clearedPromises} promises, ${clearedResults} results`
+    )
   }
 
   destroy() {

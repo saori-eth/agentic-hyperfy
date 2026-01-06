@@ -54,7 +54,7 @@ The header is a JSON object with the following structure:
 - `name`: The name of the app (used for the output filename if not specified)
 - `model`: (Optional) URL of the main 3D model file
 - `script`: (Optional) URL of the app's script file
-- `assetMap`: (Optional) Map of app-relative paths (e.g. `assets/foo.png`) to canonical `asset://...` URLs.\n  - Used to make dev-app `.hyp` exports portable: runtime helpers like `app.asset('./assets/foo.png')` can return the bundled `asset://...` URL after import.\n  - When absent, `app.asset()` may resolve to `devapp://...` only for live dev apps.
+- `assetMap`: (Optional) Map of app-relative paths (e.g. `assets/foo.png`) to canonical `asset://...` URLs.\n  - Used to make local app `.hyp` exports portable: runtime helpers like `app.asset('./assets/foo.png')` can return the bundled `asset://...` URL after import.\n  - When absent, `app.asset()` may resolve to `app://...` only for live local apps.
 - `props`: Object containing additional properties with associated assets
 - `frozen`: Boolean flag indicating if the app is locked/frozen
 
