@@ -895,13 +895,40 @@ function Apps({ world, hidden }) {
 function Add({ world, hidden }) {
   // note: multiple collections are supported by the engine but for now we just use the 'default' collection.
   const collection = world.collections.get('default')
+  const [devApps, setDevApps] = useState(() => world.collections.devApps || [])
   const span = 4
   const gap = '0.5rem'
-  const add = blueprint => {
+
+  // Listen for dev app changes
+  useEffect(() => {
+    const onDevAppReloaded = () => {
+      setDevApps([...world.collections.devApps])
+    }
+    const onDevAppRemoved = () => {
+      setDevApps([...world.collections.devApps])
+    }
+    world.on('devAppReloaded', onDevAppReloaded)
+    world.on('devAppRemoved', onDevAppRemoved)
+    return () => {
+      world.off('devAppReloaded', onDevAppReloaded)
+      world.off('devAppRemoved', onDevAppRemoved)
+    }
+  }, [])
+
+  const add = (blueprint, isDevApp = false) => {
     blueprint = cloneDeep(blueprint)
-    blueprint.id = uuid()
-    blueprint.version = 0
-    world.blueprints.add(blueprint, true)
+    // Dev apps keep their original ID so hot reload works on all instances
+    if (!isDevApp) {
+      blueprint.id = uuid()
+    }
+    blueprint.version = isDevApp ? Date.now() : 0
+
+    // For dev apps, check if blueprint already exists
+    const existingBlueprint = world.blueprints.get(blueprint.id)
+    if (!existingBlueprint) {
+      world.blueprints.add(blueprint, true)
+    }
+
     const transform = world.builder.getSpawnTransform(true)
     world.builder.toggle(true)
     world.builder.control.pointer.lock()
@@ -950,6 +977,17 @@ function Add({ world, hidden }) {
             overflow-y: auto;
             padding: 1rem;
           }
+          .add-section-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: rgba(255, 255, 255, 0.5);
+            margin: 0 0 0.5rem;
+          }
+          .add-section-label:not(:first-child) {
+            margin-top: 1rem;
+          }
           .add-items {
             display: flex;
             align-items: stretch;
@@ -969,6 +1007,9 @@ function Add({ world, hidden }) {
             border-radius: 0.7rem;
             margin: 0 0 0.4rem;
           }
+          .add-item-image.dev {
+            border-color: rgba(74, 222, 128, 0.3);
+          }
           .add-item-name {
             text-align: center;
             font-size: 0.875rem;
@@ -979,6 +1020,27 @@ function Add({ world, hidden }) {
           <div className='add-title'>Add</div>
         </div>
         <div className='add-content noscrollbar'>
+          {devApps.length > 0 && (
+            <>
+              <div className='add-section-label'>Dev Apps</div>
+              <div className='add-items'>
+                {devApps.flatMap(devApp =>
+                  devApp.blueprints.map(blueprint => (
+                    <div className='add-item' key={blueprint.id} onClick={() => add(blueprint, true)}>
+                      <div
+                        className='add-item-image dev'
+                        css={css`
+                          background-image: url(${world.resolveURL(blueprint.image?.url)});
+                        `}
+                      ></div>
+                      <div className='add-item-name'>{blueprint.name}</div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </>
+          )}
+          <div className='add-section-label'>Collection</div>
           <div className='add-items'>
             {collection.blueprints.map(blueprint => (
               <div className='add-item' key={blueprint.id} onClick={() => add(blueprint)}>

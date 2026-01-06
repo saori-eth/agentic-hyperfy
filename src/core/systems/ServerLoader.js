@@ -186,6 +186,19 @@ export class ServerLoader extends System {
     return promise
   }
 
+  /**
+   * Clear cached assets for a dev app (for hot reload)
+   */
+  clearDevApp(appName) {
+    const prefix = `devapp://${appName}/`
+    for (const [key, _] of this.promises) {
+      if (key.includes(prefix)) {
+        this.promises.delete(key)
+        this.results.delete(key)
+      }
+    }
+  }
+
   destroy() {
     this.promises.clear()
     this.results.clear()

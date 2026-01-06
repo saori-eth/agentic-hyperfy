@@ -16,6 +16,7 @@ import { getDB } from './db'
 import { Storage } from './Storage'
 import { assets } from './assets'
 import { collections } from './collections'
+import { devApps } from './devApps'
 import { cleaner } from './cleaner'
 
 const rootDir = path.join(__dirname, '../')
@@ -71,6 +72,9 @@ await assets.init({ rootDir, worldDir })
 // init collections
 await collections.init({ rootDir, worldDir })
 
+// init dev apps (local development)
+await devApps.init({ rootDir, worldDir })
+
 // init db
 const db = await getDB({ worldDir })
 
@@ -85,11 +89,18 @@ const world = createServerWorld()
 await world.init({
   assetsDir: assets.dir,
   assetsUrl: assets.url,
+  devAppsDir: devApps.dir,
+  // Use base URL without /assets suffix for dev-assets
+  devAppsUrl: devApps.dir ? process.env.ASSETS_BASE_URL.replace(/\/assets\/?$/, '/dev-assets') : null,
   db,
   assets,
   storage,
   collections: collections.list,
+  devApps: devApps.list,
 })
+
+// Set world reference on devApps for hot reload
+devApps.setWorld(world)
 
 fastify.register(cors)
 fastify.register(compress)
@@ -125,6 +136,20 @@ if (world.assetsDir) {
       // all assets are hashed & immutable so we can use aggressive caching
       res.setHeader('Cache-Control', 'public, max-age=31536000, immutable') // 1 year
       res.setHeader('Expires', new Date(Date.now() + 31536000000).toUTCString()) // older browsers
+    },
+  })
+}
+// Serve dev apps assets (local development only)
+if (world.devAppsDir) {
+  fastify.register(statics, {
+    root: world.devAppsDir,
+    prefix: '/dev-assets/',
+    decorateReply: false,
+    setHeaders: res => {
+      // Dev assets should not be cached for hot reload
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
+      res.setHeader('Pragma', 'no-cache')
+      res.setHeader('Expires', '0')
     },
   })
 }
@@ -240,11 +265,13 @@ console.log(`server listening on port ${port}`)
 
 // Graceful shutdown
 process.on('SIGINT', async () => {
+  devApps.destroy()
   await fastify.close()
   process.exit(0)
 })
 
 process.on('SIGTERM', async () => {
+  devApps.destroy()
   await fastify.close()
   process.exit(0)
 })

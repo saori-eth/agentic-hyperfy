@@ -359,6 +359,43 @@ export class ClientLoader extends System {
     this.promises.set(key, promise)
   }
 
+  /**
+   * Clear cached assets for a dev app (for hot reload)
+   */
+  clearDevApp(appName) {
+    // Match both the original devapp:// URL and the resolved HTTP URL
+    const devappPrefix = `devapp://${appName}/`
+    const httpPattern = `/dev-assets/${appName}/`
+    
+    let clearedFiles = 0
+    let clearedPromises = 0
+    let clearedResults = 0
+    
+    // Clear from files cache (stores resolved URLs)
+    for (const [key, _] of this.files) {
+      if (key.includes(devappPrefix) || key.includes(httpPattern)) {
+        this.files.delete(key)
+        clearedFiles++
+      }
+    }
+    // Clear from promises cache
+    for (const [key, _] of this.promises) {
+      if (key.includes(devappPrefix) || key.includes(httpPattern)) {
+        this.promises.delete(key)
+        clearedPromises++
+      }
+    }
+    // Clear from results cache (separately since results may exist without promises)
+    for (const [key, _] of this.results) {
+      if (key.includes(devappPrefix) || key.includes(httpPattern)) {
+        this.results.delete(key)
+        clearedResults++
+      }
+    }
+    
+    console.log(`[devApps] cleared cache for ${appName}: ${clearedFiles} files, ${clearedPromises} promises, ${clearedResults} results`)
+  }
+
   destroy() {
     this.files.clear()
     this.promises.clear()

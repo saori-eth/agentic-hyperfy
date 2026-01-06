@@ -314,6 +314,27 @@ export class Apps extends System {
         const node = entity.createNode(name, data)
         return node.getProxy()
       },
+      asset(entity, relativePath) {
+        // Resolve relative asset paths for dev apps
+        // e.g., './assets/image.png' -> 'devapp://example/assets/image.png'
+        if (!relativePath) return relativePath
+        
+        // Check if the app's script is a devapp:// URL
+        const scriptUrl = entity.blueprint?.script
+        if (scriptUrl && scriptUrl.startsWith('devapp://')) {
+          // Extract app name from devapp://appname/...
+          const match = scriptUrl.match(/^devapp:\/\/([^/]+)\//)
+          if (match) {
+            const appName = match[1]
+            // Remove leading ./ if present
+            const cleanPath = relativePath.replace(/^\.\//, '')
+            return `devapp://${appName}/${cleanPath}`
+          }
+        }
+        
+        // For non-dev apps, return the path as-is
+        return relativePath
+      },
       control(entity, options) {
         entity.control?.release()
         // TODO: only allow on user interaction

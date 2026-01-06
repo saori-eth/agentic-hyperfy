@@ -1,0 +1,10 @@
+{
+  "name": "Spinning Box",
+  "desc": "A simple spinning box dev app",
+  "author": "Developer",
+  "model": "./assets/empty.glb",
+  "script": "./index.js",
+  "props": {},
+  "preload": false,
+  "public": false
+}

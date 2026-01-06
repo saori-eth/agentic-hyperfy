@@ -26,6 +26,8 @@ const names = [
   'ai',
   'ping',
   'pong',
+  'devAppReloaded',
+  'devAppRemoved',
 ]
 
 const byName = {}

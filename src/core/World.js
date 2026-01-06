@@ -62,6 +62,8 @@ export class World extends EventEmitter {
     this.storage = options.storage
     this.assetsDir = options.assetsDir
     this.assetsUrl = options.assetsUrl
+    this.devAppsDir = options.devAppsDir
+    this.devAppsUrl = options.devAppsUrl
     for (const system of this.systems) {
       await system.init(options)
     }
@@ -211,6 +213,18 @@ export class World extends EventEmitter {
     url = url.trim()
     if (url.startsWith('blob')) {
       return url
+    }
+    if (url.startsWith('devapp://')) {
+      if (this.devAppsDir && allowLocal) {
+        // Server-side: resolve to local file path
+        return url.replace('devapp:/', this.devAppsDir)
+      } else if (this.devAppsUrl) {
+        // Client-side: resolve to HTTP URL
+        return url.replace('devapp:/', this.devAppsUrl)
+      } else {
+        console.error('resolveURL: devapp:// used but no devAppsUrl or devAppsDir defined')
+        return url
+      }
     }
     if (url.startsWith('asset://')) {
       if (this.assetsDir && allowLocal) {

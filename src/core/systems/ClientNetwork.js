@@ -134,7 +134,14 @@ export class ClientNetwork extends System {
     }
     this.world.loader.execPreload()
 
+    // Set devApps URL for resolving devapp:// protocol
+    this.world.devAppsUrl = data.devAppsUrl
+
     this.world.collections.deserialize(data.collections)
+    // Set dev apps for local development
+    if (data.devApps && data.devApps.length > 0) {
+      this.world.collections.devApps = data.devApps
+    }
     this.world.settings.deserialize(data.settings)
     this.world.settings.setHasAdminCode(data.hasAdminCode)
     this.world.chat.deserialize(data.chat)
@@ -211,6 +218,52 @@ export class ClientNetwork extends System {
 
   onKick = code => {
     this.world.emit('kick', code)
+  }
+
+  onDevAppReloaded = data => {
+    const { appName, blueprint } = data
+    console.log(`[devApps] reloading: ${appName}`, blueprint)
+
+    // Clear loader cache for this app's assets so they get refetched
+    this.world.loader.clearDevApp?.(appName)
+
+    // Update collections devApps list
+    this.world.collections.updateDevApp(appName, blueprint)
+
+    // Check if blueprint exists in registry
+    const existing = this.world.blueprints.get(blueprint.id)
+    if (existing) {
+      // Force rebuild by directly updating the blueprint and rebuilding entities
+      // The version timestamp in the blueprint ensures cache busting
+      this.world.blueprints.items.set(blueprint.id, blueprint)
+      
+      // Rebuild all entities using this blueprint
+      for (const [_, entity] of this.world.entities.items) {
+        if (entity.data.blueprint === blueprint.id) {
+          console.log(`[devApps] rebuilding entity: ${entity.data.id}`)
+          entity.data.state = {}
+          entity.build()
+        }
+      }
+      
+      this.world.blueprints.emit('modify', blueprint)
+    } else {
+      console.log(`[devApps] blueprint not found in registry: ${blueprint.id}`)
+    }
+
+    // Emit event for UI updates
+    this.world.emit('devAppReloaded', { appName, blueprint })
+  }
+
+  onDevAppRemoved = data => {
+    const { appName } = data
+    console.log(`[devApps] removed: ${appName}`)
+
+    // Remove from collections
+    this.world.collections.removeDevApp(appName)
+
+    // Emit event for UI updates
+    this.world.emit('devAppRemoved', { appName })
   }
 
   onClose = code => {
