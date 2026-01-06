@@ -324,7 +324,7 @@ export class Apps extends System {
           const cleanPath = String(relativePath).replace(/^\.\//, '').replace(/^\//, '')
           return assetMap[cleanPath] || relativePath
         }
-        
+
         // Resolve relative asset paths for dev apps
         // e.g., './assets/image.png' -> 'devapp://example/assets/image.png'
         // Check if the app's script is a devapp:// URL
@@ -339,7 +339,7 @@ export class Apps extends System {
             return `devapp://${appName}/${cleanPath}`
           }
         }
-        
+
         // For non-dev apps, return the path as-is
         return relativePath
       },
