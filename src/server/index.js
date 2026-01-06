@@ -104,6 +104,62 @@ devApps.setWorld(world)
 
 fastify.register(cors)
 fastify.register(compress)
+
+// Dev apps: manifest of files under apps/<appName>/assets/**
+// Used to make exported .hyp files portable by bundling dev assets.
+if (world.devAppsDir) {
+  fastify.get('/api/dev-app-assets/:appName', async (req, reply) => {
+    const appName = String(req.params?.appName || '').trim()
+
+    // Prevent path traversal / weird names
+    if (!appName || appName.includes('..') || appName.includes('/') || appName.includes('\\')) {
+      return reply.code(400).send({ error: 'invalid appName' })
+    }
+
+    const appRoot = path.join(world.devAppsDir, appName)
+    const assetsRoot = path.join(appRoot, 'assets')
+
+    if (!fs.existsSync(appRoot)) {
+      return reply.code(404).send({ error: 'app not found' })
+    }
+    if (!fs.existsSync(assetsRoot)) {
+      return reply.send({ files: [] })
+    }
+
+    const files = []
+
+    const walk = dir => {
+      const entries = fs.readdirSync(dir, { withFileTypes: true })
+      for (const entry of entries) {
+        // ignore dotfiles
+        if (entry.name.startsWith('.')) continue
+        const fullPath = path.join(dir, entry.name)
+        if (entry.isDirectory()) {
+          walk(fullPath)
+          continue
+        }
+        if (!entry.isFile()) continue
+        // return path relative to app root (e.g. "assets/foo.png")
+        const rel = path.relative(appRoot, fullPath).replaceAll(path.sep, '/')
+        // only allow assets/**
+        if (rel.startsWith('assets/')) {
+          files.push(rel)
+        }
+      }
+    }
+
+    try {
+      walk(assetsRoot)
+    } catch (err) {
+      console.error('[devApps] failed to build assets manifest', err)
+      return reply.code(500).send({ error: 'failed to build manifest' })
+    }
+
+    files.sort()
+    return reply.send({ files })
+  })
+}
+
 fastify.get('/', async (req, reply) => {
   const title = world.settings.title || 'World'
   const desc = world.settings.desc || ''

@@ -1,5 +1,30 @@
 import { cloneDeep } from 'lodash-es'
 
+function getDevAppNameFromUrl(url) {
+  if (!url || typeof url !== 'string') return null
+  const match = url.match(/^devapp:\/\/([^/]+)\//)
+  return match ? match[1] : null
+}
+
+function getDevAppNameFromBlueprint(blueprint) {
+  if (!blueprint) return null
+  // Prefer script (most reliable)
+  const fromScript = getDevAppNameFromUrl(blueprint.script)
+  if (fromScript) return fromScript
+  const fromModel = getDevAppNameFromUrl(blueprint.model)
+  if (fromModel) return fromModel
+  const imageUrl = typeof blueprint.image === 'string' ? blueprint.image : blueprint.image && blueprint.image.url
+  const fromImage = getDevAppNameFromUrl(imageUrl)
+  if (fromImage) return fromImage
+  for (const value of Object.values(blueprint.props || {})) {
+    if (value?.url) {
+      const fromProp = getDevAppNameFromUrl(value.url)
+      if (fromProp) return fromProp
+    }
+  }
+  return null
+}
+
 export async function exportApp(blueprint, resolveFile) {
   blueprint = cloneDeep(blueprint)
 
@@ -19,14 +44,16 @@ export async function exportApp(blueprint, resolveFile) {
       file: await resolveFile(blueprint.script),
     })
   }
-  if (blueprint.image) {
+  // blueprint.image can be a string url or an object with { url }
+  const imageUrl = typeof blueprint.image === 'string' ? blueprint.image : blueprint.image && blueprint.image.url
+  if (imageUrl) {
     assets.push({
       type: 'texture',
-      url: blueprint.image.url,
-      file: await resolveFile(blueprint.image.url),
+      url: imageUrl,
+      file: await resolveFile(imageUrl),
     })
   }
-  for (const key in blueprint.props) {
+  for (const key in blueprint.props || {}) {
     const value = blueprint.props[key]
     if (value?.url) {
       assets.push({
@@ -34,6 +61,35 @@ export async function exportApp(blueprint, resolveFile) {
         url: value.url,
         file: await resolveFile(value.url),
       })
+    }
+  }
+
+  // Dev apps: bundle apps/<appName>/assets/** for portability
+  const devAppName = getDevAppNameFromBlueprint(blueprint)
+  if (devAppName && typeof fetch !== 'undefined') {
+    try {
+      const resp = await fetch(`/api/dev-app-assets/${encodeURIComponent(devAppName)}`)
+      if (resp.ok) {
+        const data = await resp.json()
+        const files = Array.isArray(data?.files) ? data.files : []
+        const existingUrls = new Set(assets.map(a => a.url))
+        for (const relPath of files) {
+          if (!relPath || typeof relPath !== 'string') continue
+          // manifest returns paths relative to app root, e.g. "assets/foo.png"
+          const url = `devapp://${devAppName}/${relPath.replace(/^\.\//, '')}`
+          if (existingUrls.has(url)) continue
+          assets.push({
+            type: 'file',
+            url,
+            file: await resolveFile(url),
+          })
+          existingUrls.add(url)
+        }
+      } else {
+        console.warn('[exportApp] dev app assets manifest not available:', resp.status)
+      }
+    } catch (err) {
+      console.warn('[exportApp] failed to fetch dev app assets manifest', err)
     }
   }
 

@@ -1063,8 +1063,85 @@ export class ClientBuilder extends System {
 
   async addApp(file, transform) {
     const info = await importApp(file)
+
+    const isDevappUrl = url => typeof url === 'string' && url.startsWith('devapp://')
+    const getDevAppName = url => {
+      const match = typeof url === 'string' ? url.match(/^devapp:\/\/([^/]+)\//) : null
+      return match ? match[1] : null
+    }
+    const getDevRelPath = url => {
+      const match = typeof url === 'string' ? url.match(/^devapp:\/\/[^/]+\/(.+)$/) : null
+      return match ? match[1] : null
+    }
+
+    // If this .hyp came from a dev app export, rewrite devapp:// URLs to portable asset:// URLs
+    const devAppName =
+      getDevAppName(info.blueprint?.script) ||
+      getDevAppName(info.blueprint?.model) ||
+      getDevAppName(
+        typeof info.blueprint?.image === 'string' ? info.blueprint.image : info.blueprint?.image?.url
+      ) ||
+      getDevAppName(info.assets?.find(a => isDevappUrl(a.url))?.url)
+
+    const isBundledDevApp = Boolean(devAppName)
+    const supportedInsertTypes = new Set([
+      'hdr',
+      'image',
+      'video',
+      'texture',
+      'model',
+      'emote',
+      'avatar',
+      'script',
+      'audio',
+    ])
+
+    let assetMap = null
+    if (isBundledDevApp) {
+      assetMap = {}
+      for (const asset of info.assets) {
+        if (!isDevappUrl(asset.url)) continue
+        const rel = getDevRelPath(asset.url)
+        if (!rel) continue
+        const hash = await hashFile(asset.file)
+        const ext = asset.file.name.split('.').pop()?.toLowerCase() || 'bin'
+        const filename = `${hash}.${ext}`
+        const newUrl = `asset://${filename}`
+        assetMap[rel] = newUrl
+        asset.url = newUrl
+      }
+
+      const rewriteUrl = url => {
+        if (!isDevappUrl(url)) return url
+        const rel = getDevRelPath(url)
+        if (!rel) return url
+        return assetMap[rel] || url
+      }
+
+      // Rewrite blueprint URLs and attach mapping for runtime-relative loads
+      info.blueprint.model = rewriteUrl(info.blueprint.model)
+      info.blueprint.script = rewriteUrl(info.blueprint.script)
+      if (typeof info.blueprint.image === 'string') {
+        info.blueprint.image = rewriteUrl(info.blueprint.image)
+      } else if (info.blueprint.image?.url) {
+        info.blueprint.image = { ...info.blueprint.image, url: rewriteUrl(info.blueprint.image.url) }
+      }
+      for (const key in info.blueprint.props || {}) {
+        const value = info.blueprint.props[key]
+        if (value?.url) {
+          info.blueprint.props[key] = { ...value, url: rewriteUrl(value.url) }
+        }
+      }
+      info.blueprint.assetMap = assetMap
+    }
+
+    // Cache files locally so this client can insta-load them without fetching
     for (const asset of info.assets) {
-      this.world.loader.insert(asset.type, asset.url, asset.file)
+      const resolvedUrl = this.world.resolveURL(asset.url)
+      this.world.loader.setFile(resolvedUrl, asset.file)
+      if (supportedInsertTypes.has(asset.type)) {
+        this.world.loader.insert(asset.type, asset.url, asset.file)
+      }
     }
     // if scene, update existing scene
     if (info.blueprint.scene) {
@@ -1088,6 +1165,7 @@ export class ClientBuilder extends System {
         model: info.blueprint.model,
         script: info.blueprint.script,
         props: info.blueprint.props,
+        assetMap: info.blueprint.assetMap,
         preload: info.blueprint.preload,
         public: info.blueprint.public,
         locked: info.blueprint.locked,
@@ -1118,6 +1196,7 @@ export class ClientBuilder extends System {
       model: info.blueprint.model,
       script: info.blueprint.script,
       props: info.blueprint.props,
+      assetMap: info.blueprint.assetMap,
       preload: info.blueprint.preload,
       public: info.blueprint.public,
       locked: info.blueprint.locked,

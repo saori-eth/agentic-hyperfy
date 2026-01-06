@@ -315,10 +315,18 @@ export class Apps extends System {
         return node.getProxy()
       },
       asset(entity, relativePath) {
+        if (!relativePath) return relativePath
+
+        // Imported .hyp bundles can attach an assetMap for portability.
+        // e.g. './assets/image.png' -> 'asset://<hash>.png'
+        const assetMap = entity.blueprint?.assetMap
+        if (assetMap && typeof assetMap === 'object') {
+          const cleanPath = String(relativePath).replace(/^\.\//, '').replace(/^\//, '')
+          return assetMap[cleanPath] || relativePath
+        }
+        
         // Resolve relative asset paths for dev apps
         // e.g., './assets/image.png' -> 'devapp://example/assets/image.png'
-        if (!relativePath) return relativePath
-        
         // Check if the app's script is a devapp:// URL
         const scriptUrl = entity.blueprint?.script
         if (scriptUrl && scriptUrl.startsWith('devapp://')) {
