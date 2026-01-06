@@ -1,0 +1,10 @@
+{
+  "name": "Machine Gun",
+  "desc": "",
+  "author": "",
+  "model": "./assets/empty.glb",
+  "script": "./index.js",
+  "props": {},
+  "preload": false,
+  "public": false
+}

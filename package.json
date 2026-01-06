@@ -21,6 +21,7 @@
     "dev": "node scripts/build.mjs --dev",
     "build": "node scripts/build.mjs",
     "start": "node build/index.js",
+    "new-app": "node scripts/new-app.mjs",
     "world:backup": "node scripts/backup-world.mjs",
     "viewer:dev": "node scripts/build-viewer.mjs --dev",
     "viewer:build": "node scripts/build-viewer.mjs",
