@@ -1,5 +1,6 @@
 import fs from 'fs-extra'
 import path from 'path'
+import esbuild from 'esbuild'
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js'
 // import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { GLTFLoader } from '../libs/gltfloader/GLTFLoader.js'
@@ -166,9 +167,29 @@ export class ServerLoader extends System {
       })
     }
     if (type === 'script') {
+      // Check if this is a local app script that needs bundling
+      // key contains the original URL before resolution (e.g. "script/app://my-app/index.js")
+      const isLocalApp = key.includes('app://')
+      
       promise = new Promise(async (resolve, reject) => {
         try {
-          const code = await this.fetchText(url)
+          let code
+          if (isLocalApp && url.endsWith('index.js')) {
+            // Bundle local app scripts so imports work
+            const result = await esbuild.build({
+              entryPoints: [url],
+              bundle: true,
+              write: false,
+              format: 'esm',
+              platform: 'neutral',
+              sourcemap: false,
+              minify: false,
+              keepNames: true,
+            })
+            code = result.outputFiles[0].text
+          } else {
+            code = await this.fetchText(url)
+          }
           const script = this.world.scripts.evaluate(code)
           this.results.set(key, script)
           resolve(script)
@@ -184,6 +205,19 @@ export class ServerLoader extends System {
     }
     this.promises.set(key, promise)
     return promise
+  }
+
+  /**
+   * Clear cached assets for a dev app (for hot reload)
+   */
+  clearLocalApp(appName) {
+    const prefix = `app://${appName}/`
+    for (const [key, _] of this.promises) {
+      if (key.includes(prefix)) {
+        this.promises.delete(key)
+        this.results.delete(key)
+      }
+    }
   }
 
   destroy() {

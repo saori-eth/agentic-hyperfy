@@ -27,6 +27,9 @@ The header is a JSON object with the following structure:
     "name": "string",
     "model": "string (optional)",
     "script": "string (optional)",
+    "assetMap": {
+      "[relativePath: string]": "string"
+    },
     "props": {
       [key: string]: {
         "type": "string",
@@ -51,6 +54,7 @@ The header is a JSON object with the following structure:
 - `name`: The name of the app (used for the output filename if not specified)
 - `model`: (Optional) URL of the main 3D model file
 - `script`: (Optional) URL of the app's script file
+- `assetMap`: (Optional) Map of app-relative paths (e.g. `assets/foo.png`) to canonical `asset://...` URLs.\n  - Used to make local app `.hyp` exports portable: runtime helpers like `app.asset('./assets/foo.png')` can return the bundled `asset://...` URL after import.\n  - When absent, `app.asset()` may resolve to `app://...` only for live local apps.
 - `props`: Object containing additional properties with associated assets
 - `frozen`: Boolean flag indicating if the app is locked/frozen
 
@@ -60,6 +64,7 @@ Assets can be of different types:
 - `model`: 3D model files (e.g., .glb)
 - `avatar`: VRM avatar files
 - `script`: JavaScript files
+- `file`: Generic bundled files (e.g. images/data files) that may not be pre-parsed by the loader but are included for portability
 
 ## File Operations
 

@@ -314,6 +314,35 @@ export class Apps extends System {
         const node = entity.createNode(name, data)
         return node.getProxy()
       },
+      asset(entity, relativePath) {
+        if (!relativePath) return relativePath
+
+        // Imported .hyp bundles can attach an assetMap for portability.
+        // e.g. './assets/image.png' -> 'asset://<hash>.png'
+        const assetMap = entity.blueprint?.assetMap
+        if (assetMap && typeof assetMap === 'object') {
+          const cleanPath = String(relativePath).replace(/^\.\//, '').replace(/^\//, '')
+          return assetMap[cleanPath] || relativePath
+        }
+
+        // Resolve relative asset paths for local apps
+        // e.g., './assets/image.png' -> 'app://example/assets/image.png'
+        // Check if the app's script is an app:// URL
+        const scriptUrl = entity.blueprint?.script
+        if (scriptUrl && scriptUrl.startsWith('app://')) {
+          // Extract app name from app://appname/...
+          const match = scriptUrl.match(/^app:\/\/([^/]+)\//)
+          if (match) {
+            const appName = match[1]
+            // Remove leading ./ if present
+            const cleanPath = relativePath.replace(/^\.\//, '')
+            return `app://${appName}/${cleanPath}`
+          }
+        }
+
+        // For non-dev apps, return the path as-is
+        return relativePath
+      },
       control(entity, options) {
         entity.control?.release()
         // TODO: only allow on user interaction
