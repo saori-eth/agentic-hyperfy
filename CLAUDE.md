@@ -1,5 +1,31 @@
 # Docs
 
+## Creating Apps
+
+Apps are created and developed in the `apps/` directory. To create a new app, run:
+
+```bash
+npm run new-app <app-name>
+```
+
+This creates a new folder at `apps/<app-name>/` with the following structure:
+
+```
+apps/
+  <app-name>/
+    blueprint.json    # App configuration
+    index.js          # App script (write your code here)
+    assets/           # Models, textures, etc.
+```
+
+Write all app scripts in `index.js` within the app folder. The script will hot-reload during development.
+
+When generating objects with prims, always hide the default placeholder block at the top of your script:
+
+```javascript
+app.get('Block').visible = false
+```
+
 ## Environment
 
 Apps are individual objects in a 3D virtual world and each app has its own transform (position, rotation and scale) in the world.
