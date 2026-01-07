@@ -54,7 +54,3 @@ By default, Hyperfy uses local SQLite and filesystem storage which persist to th
 - `ASSETS=s3` + `ASSETS_S3_URI=s3://...` - Use S3/R2 instead of local storage
 
 See `fly.toml` for configuration.
-
-## License
-
-MIT
