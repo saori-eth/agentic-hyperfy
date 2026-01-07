@@ -69,6 +69,14 @@ const blueprint = {
 
 fs.writeJsonSync(path.join(appDir, 'blueprint.json'), blueprint, { spaces: 2 })
 
+// Create helper.js
+const helper = `export function rotateApp(delta, speed = 1) {
+  app.rotation.y += speed * delta
+}
+`
+
+fs.writeFileSync(path.join(appDir, 'helper.js'), helper)
+
 // Create index.js with boilerplate
 const script = `/**
  * ${blueprint.name}
@@ -76,10 +84,10 @@ const script = `/**
  * Edit this file and save to hot-reload!
  */
 
+import { rotateApp } from './helper.js'
+
 app.on('update', delta => {
-  // Called every frame
-  // delta is time since last frame in seconds
-  app.rotation.y += 1 * delta
+  rotateApp(delta)
 })
 
 `
@@ -93,6 +101,7 @@ console.log(`
 ✓ Created ${appDir}
   ├── blueprint.json
   ├── index.js
+  ├── helper.js
   └── assets/
       ├── app-icon.png
       └── empty.glb

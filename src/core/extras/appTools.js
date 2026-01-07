@@ -38,10 +38,34 @@ export async function exportApp(blueprint, resolveFile) {
     })
   }
   if (blueprint.script) {
+    let scriptFile
+    // For local apps, fetch bundled script with all imports inlined
+    if (blueprint.script.startsWith('app://') && typeof fetch !== 'undefined') {
+      const scriptAppName = getAppNameFromUrl(blueprint.script)
+      if (scriptAppName) {
+        try {
+          const bundleResp = await fetch(`/api/app-bundle/${encodeURIComponent(scriptAppName)}`)
+          if (bundleResp.ok) {
+            const bundledCode = await bundleResp.text()
+            scriptFile = new File([bundledCode], 'index.js', { type: 'application/javascript' })
+          } else {
+            console.warn('[exportApp] bundle endpoint failed, using raw script:', bundleResp.status)
+            scriptFile = await resolveFile(blueprint.script)
+          }
+        } catch (err) {
+          console.warn('[exportApp] failed to fetch bundled script, using raw:', err)
+          scriptFile = await resolveFile(blueprint.script)
+        }
+      } else {
+        scriptFile = await resolveFile(blueprint.script)
+      }
+    } else {
+      scriptFile = await resolveFile(blueprint.script)
+    }
     assets.push({
       type: 'script',
       url: blueprint.script,
-      file: await resolveFile(blueprint.script),
+      file: scriptFile,
     })
   }
   // blueprint.image can be a string url or an object with { url }

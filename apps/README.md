@@ -111,6 +111,38 @@ app.add(image)
 
 See the [scripting documentation](../docs/scripting/README.md) for the full API.
 
+## Helper Files & Imports
+
+You can organize your code into multiple files using ES module imports:
+
+```
+apps/
+  my-app/
+    index.js          # Main entry point
+    helper.js         # Helper module
+    utils/
+      math.js         # Nested modules work too
+    blueprint.json
+```
+
+```javascript
+// index.js
+import { doSomething } from './helper.js'
+import { lerp } from './utils/math.js'
+
+app.on('update', delta => {
+  doSomething()
+})
+```
+
+```javascript
+// helper.js
+export function doSomething() {
+  console.log('Hello from helper!')
+}
+```
+
+Scripts are automatically bundled with their imports during both development (hot-reload) and export. This means you can use standard ES module imports and they'll work immediately.
 
 ## Asset Paths
 
@@ -141,5 +173,11 @@ These are resolved to `app://app-name/...` URLs internally.
 
 ## Exporting
 
-To share your app, you can export it as a `.hyp` file from the in-world inspector (download button). This bundles the blueprint and all assets into a single file.
+To share your app, you can export it as a `.hyp` file from the in-world inspector (download button). This bundles:
+
+- The blueprint configuration
+- All assets from the `assets/` folder
+- The script with all helper imports inlined (via esbuild)
+
+The exported `.hyp` file is fully portable and can be imported into any Hyperfy world.
 

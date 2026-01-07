@@ -4,6 +4,7 @@ import './bootstrap'
 
 import fs from 'fs-extra'
 import path from 'path'
+import esbuild from 'esbuild'
 import Fastify from 'fastify'
 import ws from '@fastify/websocket'
 import cors from '@fastify/cors'
@@ -158,6 +159,46 @@ if (world.localAppsDir) {
     files.sort()
     return reply.send({ files })
   })
+
+  // Bundle endpoint: returns app script with all imports inlined
+  // Used when exporting local apps to .hyp files for portability
+  fastify.get('/api/app-bundle/:appName', async (req, reply) => {
+    const appName = String(req.params?.appName || '').trim()
+
+    // Prevent path traversal / weird names
+    if (!appName || appName.includes('..') || appName.includes('/') || appName.includes('\\')) {
+      return reply.code(400).send({ error: 'invalid appName' })
+    }
+
+    const appRoot = path.join(world.localAppsDir, appName)
+    const entryPoint = path.join(appRoot, 'index.js')
+
+    if (!fs.existsSync(entryPoint)) {
+      return reply.code(404).send({ error: 'app script not found' })
+    }
+
+    try {
+      const result = await esbuild.build({
+        entryPoints: [entryPoint],
+        bundle: true,
+        write: false,
+        format: 'esm',
+        platform: 'neutral',
+        // Don't include source maps for smaller bundle
+        sourcemap: false,
+        // Minify for smaller export size
+        minify: false,
+        // Keep names readable for debugging
+        keepNames: true,
+      })
+
+      const bundledCode = result.outputFiles[0].text
+      return reply.type('application/javascript').send(bundledCode)
+    } catch (err) {
+      console.error(`[localApps] failed to bundle ${appName}:`, err.message)
+      return reply.code(500).send({ error: 'bundle failed', details: err.message })
+    }
+  })
 }
 
 fastify.get('/', async (req, reply) => {
@@ -197,6 +238,44 @@ if (world.assetsDir) {
 }
 // Serve dev apps assets (local development only)
 if (world.localAppsDir) {
+  // Bundle index.js on-the-fly so imports work during development
+  // This must be registered BEFORE the static handler to intercept script requests
+  fastify.get('/app-assets/:appName/index.js', async (req, reply) => {
+    const appName = String(req.params?.appName || '').trim()
+
+    // Prevent path traversal
+    if (!appName || appName.includes('..') || appName.includes('/') || appName.includes('\\')) {
+      return reply.code(400).send({ error: 'invalid appName' })
+    }
+
+    const entryPoint = path.join(world.localAppsDir, appName, 'index.js')
+
+    if (!fs.existsSync(entryPoint)) {
+      return reply.code(404).send({ error: 'script not found' })
+    }
+
+    try {
+      const result = await esbuild.build({
+        entryPoints: [entryPoint],
+        bundle: true,
+        write: false,
+        format: 'esm',
+        platform: 'neutral',
+        sourcemap: false,
+        minify: false,
+        keepNames: true,
+      })
+
+      reply.header('Cache-Control', 'no-cache, no-store, must-revalidate')
+      reply.header('Pragma', 'no-cache')
+      reply.header('Expires', '0')
+      return reply.type('application/javascript').send(result.outputFiles[0].text)
+    } catch (err) {
+      console.error(`[localApps] failed to bundle ${appName}:`, err.message)
+      return reply.code(500).send({ error: 'bundle failed', details: err.message })
+    }
+  })
+
   fastify.register(statics, {
     root: world.localAppsDir,
     prefix: '/app-assets/',
