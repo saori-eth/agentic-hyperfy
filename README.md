@@ -1,120 +1,60 @@
-# Hyperfy ⚡️
+# Hyperfy
 
-<div align="center">
-  <img src="overview.png" alt="Hyperfy Ecosystem" width="100%" />
-  <p>
-    <strong>Build, deploy, and experience interactive 3D virtual worlds</strong>
-  </p>
-</div>
+A real-time 3D virtual world engine built on Three.js and WebGL. Full backend/frontend solution with PhysX physics and server-side simulation out of the box. All scripts run on both server and client. First-class support for .vrm avatars, and all .glb/.vrm models are instanced by default.
 
-## What is Hyperfy?
-
-Hyperfy is an open-source framework for building interactive 3D virtual worlds. It combines a powerful physics engine, networked real-time collaboration, and a component-based application system to create immersive experiences that can be self-hosted or connected to the wider Hyperfy ecosystem.
-
-## 🧬 Key Features
-
-- **Standalone persistent worlds** - Host on your own domain
-- **Realtime content creation** - Build directly in-world
-- **Interactive app system** - Create dynamic applications with JavaScript
-- **Portable avatars** - Connect via Hyperfy for consistent identity
-- **Physics-based interactions** - Built on PhysX for realistic simulation
-- **WebXR support** - Experience worlds in VR
-- **Extensible architecture** - Highly customizable for various use cases
-
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/hyperfy-xyz/hyperfy)
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Node.js 22.11.0+ (via [nvm](https://github.com/nvm-sh/nvm) or direct install)
-
-### Installation
+## Quick Start
 
 ```bash
-# Clone the repository
-git clone https://github.com/hyperfy-xyz/hyperfy.git my-world
-cd my-world
-
-# Copy example environment settings
-cp .env.example .env
-
-# Install dependencies
 npm install
-
-# Start the development server
 npm run dev
 ```
 
-### Docker Deployment
+Visit `http://localhost:3000` to enter the world.
 
-For containerized deployment, check [DOCKER.md](DOCKER.md) for detailed instructions.
+## App Development
 
-## 🧩 Use Cases
+Apps power Hyperfy's content - combining 3D models with scripts that run on both client and server.
 
-- **Virtual Events & Conferences** - Host live gatherings with spatial audio
-- **Interactive Showrooms** - Create product displays and demos
-- **Social Spaces** - Build community hubs for collaboration
-- **Gaming Environments** - Design immersive game worlds
-- **Educational Experiences** - Develop interactive learning spaces
-- **Creative Showcases** - Display 3D art and interactive installations
-
-## 📚 Documentation & Resources
-
-- **[Community Documentation](https://docs.hyperfy.xyz)** - Comprehensive guides and reference
-- **[Website](https://hyperfy.io/)** - Official Hyperfy website
-- **[Sandbox](https://play.hyperfy.xyz/)** - Try Hyperfy in your browser
-- **[Twitter/X](https://x.com/hyperfy_io)** - Latest updates and announcements
-
-## 📏 Project Structure
-
-```
-docs/              - Documentation and references
-src/
-  client/          - Client-side code and components
-  core/            - Core systems (physics, networking, entities)
-  server/          - Server implementation
-CHANGELOG.md       - Version history and changes
-```
-
-## 🛠️ Development
-
-### Key Commands
+### Create a New App
 
 ```bash
-# Development mode
-npm run dev
-
-# Production build
-npm run build
-npm start
-
-# Clean orphaned assets (experimental)
-npm run world:clean
-
-# Viewer only (development)
-npm run viewer:dev
-
-# Client only (development)
-npm run client:dev
-
-# Linting
-npm run lint
-npm run lint:fix
+npm run new-app my-app
 ```
 
-## 🖊️ Contributing
+This scaffolds a new app in `apps/my-app/` with a blueprint.json, index.js script, and assets folder.
 
-Contributions are welcome! Please check out our [contributing guidelines](CONTRIBUTING.md) and [code of conduct](CODE_OF_CONDUCT.md) before getting started.
+### Hot Reload
 
-1. Fork the repository
-2. Create your feature branch: `git checkout -b feature/amazing-feature`
-3. Commit your changes: `git commit -m 'Add amazing feature'`
-4. Push to the branch: `git push origin feature/amazing-feature`
-5. Open a pull request
+Edit any file in your app folder and save - changes reload instantly without browser refresh.
 
-## 🌱 Project Status
+### Example Script
 
-This project is still in alpha as we transition all of our [reference platform](https://github.com/hyperfy-xyz/hyperfy-ref) code into fully self hostable worlds.
-Most features are already here in this repo but still need to be connected up to work with self hosting in mind.
-Note that APIs are highly likely to change during this time.
+```javascript
+app.on('update', delta => {
+  // Called every frame on both client and server
+})
+```
+
+## Documentation
+
+- [Commands](./docs/commands.md)
+- [Models](./docs/supported-files/models.md)
+- [Scripting API](./docs/scripting/README.md)
+
+## Deployment (Fly.io)
+
+```bash
+fly launch    # First time setup
+fly deploy    # Deploy updates
+```
+
+By default, Hyperfy uses local SQLite and filesystem storage which persist to the Fly volume. You do not need Fly's hosted Postgres or Tigris unless you explicitly configure them via environment variables:
+
+- `DB_URI=postgres://...` - Use external Postgres instead of SQLite
+- `ASSETS=s3` + `ASSETS_S3_URI=s3://...` - Use S3/R2 instead of local storage
+
+See `fly.toml` for configuration.
+
+## License
+
+MIT
