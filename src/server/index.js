@@ -4,6 +4,7 @@ import './bootstrap'
 
 import fs from 'fs-extra'
 import path from 'path'
+import esbuild from 'esbuild'
 import Fastify from 'fastify'
 import ws from '@fastify/websocket'
 import cors from '@fastify/cors'
@@ -16,6 +17,7 @@ import { getDB } from './db'
 import { Storage } from './Storage'
 import { assets } from './assets'
 import { collections } from './collections'
+import { localApps } from './localApps'
 import { cleaner } from './cleaner'
 
 const rootDir = path.join(__dirname, '../')
@@ -71,6 +73,9 @@ await assets.init({ rootDir, worldDir })
 // init collections
 await collections.init({ rootDir, worldDir })
 
+// init local apps (default development workflow)
+await localApps.init({ rootDir, worldDir })
+
 // init db
 const db = await getDB({ worldDir })
 
@@ -85,14 +90,117 @@ const world = createServerWorld()
 await world.init({
   assetsDir: assets.dir,
   assetsUrl: assets.url,
+  localAppsDir: localApps.dir,
+  // Use base URL without /assets suffix for app-assets
+  localAppsUrl: localApps.dir ? process.env.ASSETS_BASE_URL.replace(/\/assets\/?$/, '/app-assets') : null,
   db,
   assets,
   storage,
   collections: collections.list,
+  localApps: localApps.list,
 })
+
+// Set world reference on localApps for hot reload
+localApps.setWorld(world)
 
 fastify.register(cors)
 fastify.register(compress)
+
+// Local apps: manifest of files under apps/<appName>/assets/**
+// Used to make exported .hyp files portable by bundling app assets.
+if (world.localAppsDir) {
+  fastify.get('/api/app-assets/:appName', async (req, reply) => {
+    const appName = String(req.params?.appName || '').trim()
+
+    // Prevent path traversal / weird names
+    if (!appName || appName.includes('..') || appName.includes('/') || appName.includes('\\')) {
+      return reply.code(400).send({ error: 'invalid appName' })
+    }
+
+    const appRoot = path.join(world.localAppsDir, appName)
+    const assetsRoot = path.join(appRoot, 'assets')
+
+    if (!fs.existsSync(appRoot)) {
+      return reply.code(404).send({ error: 'app not found' })
+    }
+    if (!fs.existsSync(assetsRoot)) {
+      return reply.send({ files: [] })
+    }
+
+    const files = []
+
+    const walk = dir => {
+      const entries = fs.readdirSync(dir, { withFileTypes: true })
+      for (const entry of entries) {
+        // ignore dotfiles
+        if (entry.name.startsWith('.')) continue
+        const fullPath = path.join(dir, entry.name)
+        if (entry.isDirectory()) {
+          walk(fullPath)
+          continue
+        }
+        if (!entry.isFile()) continue
+        // return path relative to app root (e.g. "assets/foo.png")
+        const rel = path.relative(appRoot, fullPath).replaceAll(path.sep, '/')
+        // only allow assets/**
+        if (rel.startsWith('assets/')) {
+          files.push(rel)
+        }
+      }
+    }
+
+    try {
+      walk(assetsRoot)
+    } catch (err) {
+      console.error('[localApps] failed to build assets manifest', err)
+      return reply.code(500).send({ error: 'failed to build manifest' })
+    }
+
+    files.sort()
+    return reply.send({ files })
+  })
+
+  // Bundle endpoint: returns app script with all imports inlined
+  // Used when exporting local apps to .hyp files for portability
+  fastify.get('/api/app-bundle/:appName', async (req, reply) => {
+    const appName = String(req.params?.appName || '').trim()
+
+    // Prevent path traversal / weird names
+    if (!appName || appName.includes('..') || appName.includes('/') || appName.includes('\\')) {
+      return reply.code(400).send({ error: 'invalid appName' })
+    }
+
+    const appRoot = path.join(world.localAppsDir, appName)
+    const entryPoint = path.join(appRoot, 'index.js')
+
+    if (!fs.existsSync(entryPoint)) {
+      return reply.code(404).send({ error: 'app script not found' })
+    }
+
+    try {
+      const result = await esbuild.build({
+        entryPoints: [entryPoint],
+        bundle: true,
+        write: false,
+        format: 'esm',
+        platform: 'neutral',
+        // Don't include source maps for smaller bundle
+        sourcemap: false,
+        // Minify for smaller export size
+        minify: false,
+        // Keep names readable for debugging
+        keepNames: true,
+      })
+
+      const bundledCode = result.outputFiles[0].text
+      return reply.type('application/javascript').send(bundledCode)
+    } catch (err) {
+      console.error(`[localApps] failed to bundle ${appName}:`, err.message)
+      return reply.code(500).send({ error: 'bundle failed', details: err.message })
+    }
+  })
+}
+
 fastify.get('/', async (req, reply) => {
   const title = world.settings.title || 'World'
   const desc = world.settings.desc || ''
@@ -125,6 +233,58 @@ if (world.assetsDir) {
       // all assets are hashed & immutable so we can use aggressive caching
       res.setHeader('Cache-Control', 'public, max-age=31536000, immutable') // 1 year
       res.setHeader('Expires', new Date(Date.now() + 31536000000).toUTCString()) // older browsers
+    },
+  })
+}
+// Serve dev apps assets (local development only)
+if (world.localAppsDir) {
+  // Bundle index.js on-the-fly so imports work during development
+  // This must be registered BEFORE the static handler to intercept script requests
+  fastify.get('/app-assets/:appName/index.js', async (req, reply) => {
+    const appName = String(req.params?.appName || '').trim()
+
+    // Prevent path traversal
+    if (!appName || appName.includes('..') || appName.includes('/') || appName.includes('\\')) {
+      return reply.code(400).send({ error: 'invalid appName' })
+    }
+
+    const entryPoint = path.join(world.localAppsDir, appName, 'index.js')
+
+    if (!fs.existsSync(entryPoint)) {
+      return reply.code(404).send({ error: 'script not found' })
+    }
+
+    try {
+      const result = await esbuild.build({
+        entryPoints: [entryPoint],
+        bundle: true,
+        write: false,
+        format: 'esm',
+        platform: 'neutral',
+        sourcemap: false,
+        minify: false,
+        keepNames: true,
+      })
+
+      reply.header('Cache-Control', 'no-cache, no-store, must-revalidate')
+      reply.header('Pragma', 'no-cache')
+      reply.header('Expires', '0')
+      return reply.type('application/javascript').send(result.outputFiles[0].text)
+    } catch (err) {
+      console.error(`[localApps] failed to bundle ${appName}:`, err.message)
+      return reply.code(500).send({ error: 'bundle failed', details: err.message })
+    }
+  })
+
+  fastify.register(statics, {
+    root: world.localAppsDir,
+    prefix: '/app-assets/',
+    decorateReply: false,
+    setHeaders: res => {
+      // Dev assets should not be cached for hot reload
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
+      res.setHeader('Pragma', 'no-cache')
+      res.setHeader('Expires', '0')
     },
   })
 }
@@ -240,11 +400,13 @@ console.log(`server listening on port ${port}`)
 
 // Graceful shutdown
 process.on('SIGINT', async () => {
+  localApps.destroy()
   await fastify.close()
   process.exit(0)
 })
 
 process.on('SIGTERM', async () => {
+  localApps.destroy()
   await fastify.close()
   process.exit(0)
 })

@@ -282,6 +282,8 @@ export class ServerNetwork extends System {
         id: socket.id,
         serverTime: performance.now(),
         assetsUrl: process.env.ASSETS_BASE_URL,
+        localAppsUrl: this.world.localAppsUrl,
+        localApps: this.world.collections.localApps || [],
         apiUrl: process.env.PUBLIC_API_URL,
         maxUploadSize: process.env.PUBLIC_MAX_UPLOAD_SIZE,
         collections: this.world.collections.serialize(),

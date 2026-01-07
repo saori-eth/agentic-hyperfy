@@ -134,7 +134,14 @@ export class ClientNetwork extends System {
     }
     this.world.loader.execPreload()
 
+    // Set localApps URL for resolving app:// protocol
+    this.world.localAppsUrl = data.localAppsUrl
+
     this.world.collections.deserialize(data.collections)
+    // Set local apps (project apps folder)
+    if (data.localApps && data.localApps.length > 0) {
+      this.world.collections.localApps = data.localApps
+    }
     this.world.settings.deserialize(data.settings)
     this.world.settings.setHasAdminCode(data.hasAdminCode)
     this.world.chat.deserialize(data.chat)
@@ -211,6 +218,52 @@ export class ClientNetwork extends System {
 
   onKick = code => {
     this.world.emit('kick', code)
+  }
+
+  onLocalAppReloaded = data => {
+    const { appName, blueprint } = data
+    console.log(`[localApps] reloading: ${appName}`, blueprint)
+
+    // Clear loader cache for this app's assets so they get refetched
+    this.world.loader.clearLocalApp?.(appName)
+
+    // Update collections localApps list
+    this.world.collections.updateLocalApp(appName, blueprint)
+
+    // Check if blueprint exists in registry
+    const existing = this.world.blueprints.get(blueprint.id)
+    if (existing) {
+      // Force rebuild by directly updating the blueprint and rebuilding entities
+      // The version timestamp in the blueprint ensures cache busting
+      this.world.blueprints.items.set(blueprint.id, blueprint)
+      
+      // Rebuild all entities using this blueprint
+      for (const [_, entity] of this.world.entities.items) {
+        if (entity.data.blueprint === blueprint.id) {
+          console.log(`[localApps] rebuilding entity: ${entity.data.id}`)
+          entity.data.state = {}
+          entity.build()
+        }
+      }
+      
+      this.world.blueprints.emit('modify', blueprint)
+    } else {
+      console.log(`[localApps] blueprint not found in registry: ${blueprint.id}`)
+    }
+
+    // Emit event for UI updates
+    this.world.emit('localAppReloaded', { appName, blueprint })
+  }
+
+  onLocalAppRemoved = data => {
+    const { appName } = data
+    console.log(`[localApps] removed: ${appName}`)
+
+    // Remove from collections
+    this.world.collections.removeLocalApp(appName)
+
+    // Emit event for UI updates
+    this.world.emit('localAppRemoved', { appName })
   }
 
   onClose = code => {

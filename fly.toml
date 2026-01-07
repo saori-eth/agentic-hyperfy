@@ -1,0 +1,43 @@
+# fly.toml app configuration file generated for [app-name] on 2026-01-06T18:48:06-06:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = '[app-name]'
+primary_region = 'ams'
+
+[build]
+
+[env]
+  ADMIN_CODE = 'qwerty'
+  ASSETS_BASE_URL = 'https://[app-name].fly.dev/assets'
+  JWT_SECRET = 'hyper'
+  NODE_ENV = 'production'
+  PORT = '3000'
+  PUBLIC_API_URL = 'https://[app-name].fly.dev/api'
+  PUBLIC_ASSETS_URL = 'https://[app-name].fly.dev/assets'
+  PUBLIC_MAX_UPLOAD_SIZE = '12'
+  PUBLIC_WS_URL = 'wss://[app-name].fly.dev/ws'
+  SAVE_INTERVAL = '60'
+  WORLD = 'world'
+  ASSETS='local'
+
+[[mounts]]
+  source = 'data'
+  destination = '/app/world'
+  auto_extend_size_threshold = 80
+  auto_extend_size_increment = '1GB'
+  auto_extend_size_limit = '10GB'
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+[[vm]]
+  memory = '1gb'
+  cpus = 1
+  memory_mb = 1024

@@ -62,6 +62,8 @@ export class World extends EventEmitter {
     this.storage = options.storage
     this.assetsDir = options.assetsDir
     this.assetsUrl = options.assetsUrl
+    this.localAppsDir = options.localAppsDir
+    this.localAppsUrl = options.localAppsUrl
     for (const system of this.systems) {
       await system.init(options)
     }
@@ -211,6 +213,18 @@ export class World extends EventEmitter {
     url = url.trim()
     if (url.startsWith('blob')) {
       return url
+    }
+    if (url.startsWith('app://')) {
+      if (this.localAppsDir && allowLocal) {
+        // Server-side: resolve to local file path
+        return url.replace('app:/', this.localAppsDir)
+      } else if (this.localAppsUrl) {
+        // Client-side: resolve to HTTP URL
+        return url.replace('app:/', this.localAppsUrl)
+      } else {
+        console.error('resolveURL: app:// used but no localAppsUrl or localAppsDir defined')
+        return url
+      }
     }
     if (url.startsWith('asset://')) {
       if (this.assetsDir && allowLocal) {
