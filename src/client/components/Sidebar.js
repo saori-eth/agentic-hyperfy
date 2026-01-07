@@ -6,7 +6,6 @@ import {
   ChevronDownIcon,
   ChevronsUpDownIcon,
   CirclePlusIcon,
-  CodeIcon,
   DownloadIcon,
   EarthIcon,
   UsersIcon,
@@ -19,13 +18,10 @@ import {
   OctagonXIcon,
   PinIcon,
   RocketIcon,
-  SaveIcon,
   SearchIcon,
   SparkleIcon,
-  SquareCheckBigIcon,
   SquareIcon,
   SquareMenuIcon,
-  TagIcon,
   Trash2Icon,
   UserXIcon,
   ShieldBanIcon,
@@ -54,8 +50,6 @@ import { downloadFile } from '../../core/extras/downloadFile'
 import { exportApp } from '../../core/extras/appTools'
 import { hashFile } from '../../core/utils-client'
 import { cloneDeep, isArray, isBoolean, sortBy } from 'lodash-es'
-import { storage } from '../../core/storage'
-import { ScriptEditor } from './ScriptEditor'
 import { NodeHierarchy } from './NodeHierarchy'
 import { AppsList } from './AppsList'
 import { DEG2RAD, RAD2DEG } from '../../core/extras/general'
@@ -67,7 +61,7 @@ import { Ranks } from '../../core/extras/ranks'
 
 const mainSectionPanes = ['prefs']
 const worldSectionPanes = ['world', 'docs', 'apps', 'add']
-const appSectionPanes = ['app', 'script', 'nodes', 'meta']
+const appSectionPanes = ['app', 'nodes']
 
 const e1 = new THREE.Euler(0, 0, 0, 'YXZ')
 const q1 = new THREE.Quaternion()
@@ -219,25 +213,11 @@ export function Sidebar({ world, ui }) {
                 <SquareMenuIcon size='1.25rem' />
               </Btn>
               <Btn
-                active={activePane === 'script'}
-                suspended={ui.pane === 'script' && !activePane}
-                onClick={() => world.ui.togglePane('script')}
-              >
-                <CodeIcon size='1.25rem' />
-              </Btn>
-              <Btn
                 active={activePane === 'nodes'}
                 suspended={ui.pane === 'nodes' && !activePane}
                 onClick={() => world.ui.togglePane('nodes')}
               >
                 <ListTreeIcon size='1.25rem' />
-              </Btn>
-              <Btn
-                active={activePane === 'meta'}
-                suspended={ui.pane === 'meta' && !activePane}
-                onClick={() => world.ui.togglePane('meta')}
-              >
-                <TagIcon size='1.25rem' />
               </Btn>
             </Section>
           )}
@@ -247,9 +227,7 @@ export function Sidebar({ world, ui }) {
         {ui.pane === 'apps' && <Apps world={world} hidden={!ui.active} />}
         {ui.pane === 'add' && <Add world={world} hidden={!ui.active} />}
         {ui.pane === 'app' && <App key={ui.app.data.id} world={world} hidden={!ui.active} />}
-        {ui.pane === 'script' && <Script key={ui.app.data.id} world={world} hidden={!ui.active} />}
         {ui.pane === 'nodes' && <Nodes key={ui.app.data.id} world={world} hidden={!ui.active} />}
-        {ui.pane === 'meta' && <Meta key={ui.app.data.id} world={world} hidden={!ui.active} />}
         {ui.pane === 'players' && <Players world={world} hidden={!ui.active} />}
       </div>
     </HintProvider>
@@ -1546,104 +1524,6 @@ function AppField({ world, props, field, value, modify }) {
   return null
 }
 
-function Script({ world, hidden }) {
-  const app = world.ui.state.app
-  const containerRef = useRef()
-  const resizeRef = useRef()
-  const [handle, setHandle] = useState(null)
-  useEffect(() => {
-    const elem = resizeRef.current
-    const container = containerRef.current
-    container.style.width = `${storage.get('code-editor-width', 500)}px`
-    let active
-    function onPointerDown(e) {
-      active = true
-      elem.addEventListener('pointermove', onPointerMove)
-      elem.addEventListener('pointerup', onPointerUp)
-      e.currentTarget.setPointerCapture(e.pointerId)
-    }
-    function onPointerMove(e) {
-      let newWidth = container.offsetWidth + e.movementX
-      if (newWidth < 250) newWidth = 250
-      container.style.width = `${newWidth}px`
-      storage.set('code-editor-width', newWidth)
-    }
-    function onPointerUp(e) {
-      e.currentTarget.releasePointerCapture(e.pointerId)
-      elem.removeEventListener('pointermove', onPointerMove)
-      elem.removeEventListener('pointerup', onPointerUp)
-    }
-    elem.addEventListener('pointerdown', onPointerDown)
-    return () => {
-      elem.removeEventListener('pointerdown', onPointerDown)
-    }
-  }, [])
-  return (
-    <div
-      ref={containerRef}
-      className={cls('script', { hidden })}
-      css={css`
-        pointer-events: auto;
-        align-self: stretch;
-        background: rgba(11, 10, 21, 0.9);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        border-radius: 1.375rem;
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-        min-height: 23.7rem;
-        position: relative;
-        .script-head {
-          height: 3.125rem;
-          padding: 0 1rem;
-          display: flex;
-          align-items: center;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-        .script-title {
-          flex: 1;
-          font-weight: 500;
-          font-size: 1rem;
-          line-height: 1;
-        }
-        .script-btn {
-          width: 2rem;
-          height: 2rem;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: rgba(255, 255, 255, 0.8);
-          &:hover {
-            cursor: pointer;
-            color: white;
-          }
-        }
-        .script-resizer {
-          position: absolute;
-          top: 0;
-          bottom: 0;
-          right: -5px;
-          width: 10px;
-          cursor: ew-resize;
-        }
-        &.hidden {
-          opacity: 0;
-          pointer-events: none;
-        }
-      `}
-    >
-      <div className='script-head'>
-        <div className='script-title'>Script: {app.blueprint?.name}</div>
-        <div className='script-btn' onClick={() => handle?.save()}>
-          <SaveIcon size='1.125rem' />
-        </div>
-      </div>
-      <ScriptEditor key={app.data.id} app={app} onHandle={setHandle} />
-      <div className='script-resizer' ref={resizeRef} />
-    </div>
-  )
-}
-
 function Nodes({ world, hidden }) {
   const app = world.ui.state.app
   return (
@@ -1676,97 +1556,6 @@ function Nodes({ world, hidden }) {
           <div className='nodes-title'>Nodes</div>
         </div>
         <NodeHierarchy app={app} />
-      </div>
-    </Pane>
-  )
-}
-
-function Meta({ world, hidden }) {
-  const app = world.ui.state.app
-  const [blueprint, setBlueprint] = useState(app.blueprint)
-  useEffect(() => {
-    window.app = app
-    const onModify = bp => {
-      if (bp.id === blueprint.id) setBlueprint(bp)
-    }
-    world.blueprints.on('modify', onModify)
-    return () => {
-      world.blueprints.off('modify', onModify)
-    }
-  }, [])
-  const set = async (key, value) => {
-    const version = blueprint.version + 1
-    world.blueprints.modify({ id: blueprint.id, version, [key]: value })
-    world.network.send('blueprintModified', { id: blueprint.id, version, [key]: value })
-  }
-  return (
-    <Pane hidden={hidden}>
-      <div
-        className='meta'
-        css={css`
-          flex: 1;
-          background: rgba(11, 10, 21, 0.9);
-          border: 1px solid rgba(255, 255, 255, 0.05);
-          border-radius: 1.375rem;
-          display: flex;
-          flex-direction: column;
-          min-height: 1rem;
-          .meta-head {
-            height: 3.125rem;
-            padding: 0 1rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            display: flex;
-            align-items: center;
-          }
-          .meta-title {
-            font-weight: 500;
-            font-size: 1rem;
-            line-height: 1;
-          }
-          .meta-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 0.5rem 0;
-          }
-        `}
-      >
-        <div className='meta-head'>
-          <div className='meta-title'>Metadata</div>
-        </div>
-        <div className='meta-content noscrollbar'>
-          <FieldText
-            label='Name'
-            hint='The name of this app'
-            value={blueprint.name}
-            onChange={value => set('name', value)}
-          />
-          <FieldFile
-            label='Image'
-            hint='An image/icon for this app'
-            kind='texture'
-            value={blueprint.image}
-            onChange={value => set('image', value)}
-            world={world}
-          />
-          <FieldText
-            label='Author'
-            hint='The name of the author that made this app'
-            value={blueprint.author}
-            onChange={value => set('author', value)}
-          />
-          <FieldText
-            label='URL'
-            hint='A url for this app'
-            value={blueprint.url}
-            onChange={value => set('url', value)}
-          />
-          <FieldTextarea
-            label='Description'
-            hint='A description for this app'
-            value={blueprint.desc}
-            onChange={value => set('desc', value)}
-          />
-        </div>
       </div>
     </Pane>
   )
