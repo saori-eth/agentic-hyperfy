@@ -2,6 +2,13 @@
 
 A real-time 3D virtual world engine built on Three.js and WebGL. Full backend/frontend solution with PhysX physics and server-side simulation out of the box. All scripts run on both server and client. First-class support for .vrm avatars, and all .glb/.vrm models are instanced by default.
 
+## Clone
+
+```bash
+git clone https://github.com/saori-eth/agentic-hyperfy
+cd agentic-hyperfy
+```
+
 ## Quick Start
 
 ```bash
@@ -10,6 +17,10 @@ npm run dev
 ```
 
 Visit `http://localhost:3000` to enter the world.
+
+AI assistants: this repo includes `CLAUDE.md`, which Claude Code uses as project context (build/run/deploy notes, conventions, etc.) so it can act with the right setup in mind.
+
+Suggested first prompt: “create a new app and make a flower”
 
 ## App Development
 
@@ -42,6 +53,20 @@ app.on('update', delta => {
 - [Scripting API](./docs/scripting/README.md)
 
 ## Deployment (Fly.io)
+
+### Install Fly.io CLI
+
+- macOS/Linux/WSL:
+
+```bash
+curl -L https://fly.io/install.sh | sh
+```
+
+- Then restart your shell (or add Fly to your `PATH`) and verify:
+
+```bash
+flyctl version
+```
 
 ```bash
 fly launch    # First time setup
