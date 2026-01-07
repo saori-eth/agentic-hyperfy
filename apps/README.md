@@ -91,17 +91,11 @@ const texture = app.asset('./assets/texture.png')
 const model = app.asset('./assets/model.glb')
 
 // Lifecycle events
-app.on('start', () => {
-  console.log('App started!')
-})
 
 app.on('update', delta => {
   // Called every frame
 })
 
-app.on('destroy', () => {
-  // Cleanup
-})
 ```
 
 ### app.asset(relativePath)
@@ -116,15 +110,6 @@ app.add(image)
 
 See the [scripting documentation](../docs/scripting/README.md) for the full API.
 
-## Hot Reload
-
-When you save any file in your app folder:
-1. The server detects the change
-2. The blueprint is reloaded
-3. All spawned instances of the app are rebuilt
-4. No browser refresh needed!
-
-**Note:** All instances of a dev app share the same blueprint, so changes affect all spawned copies.
 
 ## Asset Paths
 
