@@ -13,6 +13,7 @@ cd agentic-hyperfy
 
 ```bash
 npm install
+cp .env.example .env  # first run
 npm run dev
 ```
 
