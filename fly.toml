@@ -1,23 +1,23 @@
-# fly.toml app configuration file generated for better-hfy-test on 2026-01-06T18:48:06-06:00
+# fly.toml app configuration file generated for [app-name] on 2026-01-06T18:48:06-06:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'better-hfy-test'
+app = '[app-name]'
 primary_region = 'ams'
 
 [build]
 
 [env]
   ADMIN_CODE = 'qwerty'
-  ASSETS_BASE_URL = 'https://better-hfy-test.fly.dev/assets'
+  ASSETS_BASE_URL = 'https://[app-name].fly.dev/assets'
   JWT_SECRET = 'hyper'
   NODE_ENV = 'production'
   PORT = '3000'
-  PUBLIC_API_URL = 'https://better-hfy-test.fly.dev/api'
-  PUBLIC_ASSETS_URL = 'https://better-hfy-test.fly.dev/assets'
+  PUBLIC_API_URL = 'https://[app-name].fly.dev/api'
+  PUBLIC_ASSETS_URL = 'https://[app-name].fly.dev/assets'
   PUBLIC_MAX_UPLOAD_SIZE = '12'
-  PUBLIC_WS_URL = 'wss://better-hfy-test.fly.dev/ws'
+  PUBLIC_WS_URL = 'wss://[app-name].fly.dev/ws'
   SAVE_INTERVAL = '60'
   WORLD = 'world'
   ASSETS='local'
