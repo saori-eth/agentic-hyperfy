@@ -80,6 +80,7 @@
   "devDependencies": {
     "@babel/eslint-parser": "^7.23.10",
     "@babel/preset-react": "^7.23.10",
+    "@flydotio/dockerfile": "^0.7.10",
     "esbuild": "^0.24.0",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
