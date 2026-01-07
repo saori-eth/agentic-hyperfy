@@ -107,6 +107,17 @@ class LocalApps {
   resolveAppPath(relativePath, appName) {
     if (!relativePath) return null
 
+    // Handle objects (e.g. image: { url, ... }) before string operations
+    if (typeof relativePath === 'object' && relativePath.url) {
+      return {
+        ...relativePath,
+        url: this.resolveAppPath(relativePath.url, appName),
+      }
+    }
+
+    // Only strings can be resolved beyond this point
+    if (typeof relativePath !== 'string') return null
+
     // If it's already an absolute URL or protocol, return as-is
     if (
       relativePath.startsWith('http') ||
@@ -114,14 +125,6 @@ class LocalApps {
       relativePath.startsWith('app://')
     ) {
       return relativePath
-    }
-
-    // Handle image objects with url property
-    if (typeof relativePath === 'object' && relativePath.url) {
-      return {
-        ...relativePath,
-        url: this.resolveAppPath(relativePath.url, appName),
-      }
     }
 
     // Remove leading ./ if present

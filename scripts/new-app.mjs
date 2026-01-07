@@ -44,6 +44,13 @@ if (fs.existsSync(emptyGlbSrc)) {
   fs.copyFileSync(emptyGlbSrc, emptyGlbDest)
 }
 
+// Copy app-icon.png as default thumbnail image
+const appIconSrc = path.join(rootDir, 'src/world/assets/app-icon.png')
+const appIconDest = path.join(appDir, 'assets/app-icon.png')
+if (fs.existsSync(appIconSrc)) {
+  fs.copyFileSync(appIconSrc, appIconDest)
+}
+
 // Create blueprint.json
 const blueprint = {
   name: appName
@@ -53,6 +60,7 @@ const blueprint = {
   desc: '',
   author: '',
   model: './assets/empty.glb',
+  image: { url: './assets/app-icon.png' },
   script: './index.js',
   props: {},
   preload: false,
@@ -68,11 +76,10 @@ const script = `/**
  * Edit this file and save to hot-reload!
  */
 
-
 app.on('update', delta => {
   // Called every frame
   // delta is time since last frame in seconds
-  console.log('${blueprint.name} updated!', delta)
+  app.rotation.y += 1 * delta
 })
 
 `
@@ -87,11 +94,13 @@ console.log(`
   ├── blueprint.json
   ├── index.js
   └── assets/
+      ├── app-icon.png
       └── empty.glb
 
 Next steps:
   1. Replace assets/empty.glb with your own model, or remove it
-  2. Edit index.js to add your app logic
-  3. Place assets in the assets/ folder
-  4. Use app.asset('./assets/file.png') to load assets in scripts
+  2. Replace assets/app-icon.png with your own thumbnail, or remove it
+  3. Edit index.js to add your app logic
+  4. Place assets in the assets/ folder
+  5. Use app.asset('./assets/file.png') to load assets in scripts
 `)

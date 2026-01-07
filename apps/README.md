@@ -32,6 +32,7 @@ The blueprint defines your app's configuration:
   "desc": "Description of my app",
   "author": "Your Name",
   "model": "./assets/model.glb",
+  "image": { "url": "./assets/thumb.png" },
   "script": "./index.js",
   "props": {},
   "preload": false,
@@ -136,6 +137,7 @@ These are resolved to `app://app-name/...` URLs internally.
 - Use descriptive app folder names (they become the app ID)
 - Check the server console for loading errors
 - Props changes require re-spawning the app to see new fields
+- If you created the app using `npm run new-app`, it will include a default thumbnail at `./assets/app-icon.png` via the `image` field
 
 ## Exporting
 
