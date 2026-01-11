@@ -11,6 +11,7 @@ const defaults = {
   height: 1,
   factor: 100,
   doubleside: false,
+  space: 'world',
 }
 
 const v1 = new THREE.Vector3()
@@ -26,6 +27,7 @@ export class WebView extends Node {
     this.height = data.height
     this.factor = data.factor
     this.doubleside = data.doubleside
+    this.space = data.space
 
     this.n = 0
   }
@@ -38,6 +40,7 @@ export class WebView extends Node {
     this._height = source._height
     this._factor = source._factor
     this._doubleside = source._doubleside
+    this._space = source._space
     return this
   }
 
@@ -69,8 +72,15 @@ export class WebView extends Node {
     if (this.ctx.world.network.isServer) return
     this.unbuild()
 
-    const n = ++this.n
+    if (this._space === 'screen') {
+      this.buildScreen()
+    } else {
+      this.buildWorld()
+    }
+  }
 
+  buildWorld() {
+    const n = ++this.n
     const hasContent = this._src || this._html
 
     // Create the black mesh (cutout)
@@ -180,8 +190,58 @@ export class WebView extends Node {
     }
   }
 
+  buildScreen() {
+    const hasContent = this._src || this._html
+    if (!hasContent) return
+
+    // For screen space, width/height are in pixels
+    const widthPx = this._width
+    const heightPx = this._height
+
+    // Container
+    const container = document.createElement('div')
+    container.style.position = 'absolute'
+    container.style.width = `${widthPx}px`
+    container.style.height = `${heightPx}px`
+    container.style.pointerEvents = 'auto'
+
+    // Position using percentage + transform offset
+    // position.x/y are percentages (0-1), position.z is z-index
+    // Use transform to offset by element size for proper corner positioning
+    container.style.left = `${this.position.x * 100}%`
+    container.style.top = `${this.position.y * 100}%`
+    container.style.transform = `translate(-${this.position.x * 100}%, -${this.position.y * 100}%)`
+    container.style.zIndex = String(Math.floor(this.position.z || 0))
+
+    // Iframe
+    const iframe = document.createElement('iframe')
+    iframe.frameBorder = '0'
+    iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share'
+    iframe.allowFullscreen = true
+    iframe.style.width = '100%'
+    iframe.style.height = '100%'
+    iframe.style.border = '0px'
+    if (this._html) {
+      iframe.srcdoc = this._html
+    } else {
+      iframe.src = this._src
+    }
+
+    container.appendChild(iframe)
+
+    // Store references
+    this.container = container
+    this.iframe = iframe
+
+    // Add to UI container
+    if (this.ctx.world.pointer?.ui) {
+      this.ctx.world.pointer.ui.prepend(container)
+    }
+  }
+
   unbuild() {
     this.n++
+    // World space cleanup
     if (this.mesh) {
       this.ctx.world.stage.scene.remove(this.mesh)
       this.mesh.geometry.dispose()
@@ -195,6 +255,11 @@ export class WebView extends Node {
     if (this.objectCSS) {
       this.ctx.world.css?.remove(this.objectCSS)
       this.objectCSS = null
+    }
+    // Screen space cleanup
+    if (this.container) {
+      this.container.remove()
+      this.container = null
     }
     this.iframe = null
     this.inner = null
@@ -298,6 +363,20 @@ export class WebView extends Node {
     this.setDirty()
   }
 
+  get space() {
+    return this._space
+  }
+
+  set space(value = defaults.space) {
+    if (value !== 'world' && value !== 'screen') {
+      throw new Error('[webview] space must be "world" or "screen"')
+    }
+    if (this._space === value) return
+    this._space = value
+    this.needsRebuild = true
+    this.setDirty()
+  }
+
   getProxy() {
     if (!this.proxy) {
       const self = this
@@ -337,6 +416,12 @@ export class WebView extends Node {
         },
         set doubleside(value) {
           self.doubleside = value
+        },
+        get space() {
+          return self.space
+        },
+        set space(value) {
+          self.space = value
         },
       }
       proxy = Object.defineProperties(proxy, Object.getOwnPropertyDescriptors(super.getProxy()))

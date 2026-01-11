@@ -82,6 +82,9 @@ export class App extends Entity {
     // otherwise we can load the model and script
     else {
       try {
+        if (!blueprint.model) {
+          throw new Error('App blueprint missing model property')
+        }
         const type = blueprint.model.endsWith('vrm') ? 'avatar' : 'model'
         let glb = this.world.loader.get(type, blueprint.model)
         if (!glb) glb = await this.world.loader.load(type, blueprint.model)
@@ -432,6 +435,7 @@ export class App extends Entity {
     // note: this is currently just used in the nodes tab in the app inspector
     // to get a clean hierarchy
     if (!this.blueprint) return
+    if (!this.blueprint.model) return
     const type = this.blueprint.model.endsWith('vrm') ? 'avatar' : 'model'
     let glb = this.world.loader.get(type, this.blueprint.model)
     if (!glb) return
