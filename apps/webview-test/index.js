@@ -9,7 +9,7 @@ app.get('Block').visible = false
 
 // Create a webview with an embedded YouTube video
 const webview = app.create('webview', {
-  src: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+  src: 'https://www.tradingview.com/symbols/NASDAQ-AAPL/',
   width: 3.2,
   height: 1.8,
   position: [0, 1.5, 0],

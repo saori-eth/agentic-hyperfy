@@ -194,6 +194,8 @@ export class WebView extends Node {
       this._onPointerDown(e)
       if (e.defaultPrevented) return
     }
+    // Don't unlock pointer in build mode - user needs to manipulate the node
+    if (this.ctx.world.builder?.enabled) return
     // Unlock pointer so user can interact with the iframe
     if (this.ctx.world.controls?.pointer?.locked) {
       this.ctx.world.controls.unlockPointer()
