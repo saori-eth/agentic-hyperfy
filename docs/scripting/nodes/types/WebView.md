@@ -41,6 +41,12 @@ The actual iframe pixel dimensions are calculated as: `width * factor` by `heigh
 
 For high-detail content like charts or text, use values between `150-300`. For simple content, `100` is sufficient.
 
+### `.doubleside`: Boolean
+
+Whether the WebView should render on both sides of the plane. Defaults to `false` (single-sided).
+
+When `true`, the iframe content is visible from both the front and back of the plane. When `false`, it's only visible from the front.
+
 ### `.onPointerDown`: Function
 
 Callback function triggered when a player clicks on the WebView.
@@ -151,6 +157,20 @@ urls.forEach((url, i) => {
 })
 
 app.add(wall)
+```
+
+### Double-Sided Display
+
+```javascript
+// Create a WebView that's visible from both sides
+const billboard = app.create('webview', {
+  src: 'https://example.com/dashboard',
+  width: 3,
+  height: 2,
+  position: [0, 2, 0],
+  doubleside: true, // Visible from front and back
+})
+app.add(billboard)
 ```
 
 ## Notes

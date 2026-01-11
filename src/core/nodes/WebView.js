@@ -1,4 +1,4 @@
-import { isNumber, isString } from 'lodash-es'
+import { isBoolean, isNumber, isString } from 'lodash-es'
 import * as THREE from '../extras/three'
 import { CSS3DObject } from 'three/examples/jsm/renderers/CSS3DRenderer.js'
 
@@ -10,6 +10,7 @@ const defaults = {
   width: 1,
   height: 1,
   factor: 100,
+  doubleside: false,
 }
 
 const v1 = new THREE.Vector3()
@@ -24,6 +25,7 @@ export class WebView extends Node {
     this.width = data.width
     this.height = data.height
     this.factor = data.factor
+    this.doubleside = data.doubleside
 
     this.n = 0
   }
@@ -35,6 +37,7 @@ export class WebView extends Node {
     this._width = source._width
     this._height = source._height
     this._factor = source._factor
+    this._doubleside = source._doubleside
     return this
   }
 
@@ -76,7 +79,7 @@ export class WebView extends Node {
       opacity: 0,
       color: new THREE.Color('black'),
       blending: hasContent ? THREE.NoBlending : THREE.NormalBlending,
-      side: THREE.DoubleSide,
+      side: this._doubleside ? THREE.DoubleSide : THREE.FrontSide,
     })
     this.mesh = new THREE.Mesh(geometry, material)
     this.mesh.matrixWorld.copy(this.matrixWorld)
@@ -281,6 +284,20 @@ export class WebView extends Node {
     this.setDirty()
   }
 
+  get doubleside() {
+    return this._doubleside
+  }
+
+  set doubleside(value = defaults.doubleside) {
+    if (!isBoolean(value)) {
+      throw new Error('[webview] doubleside not a boolean')
+    }
+    if (this._doubleside === value) return
+    this._doubleside = value
+    this.needsRebuild = true
+    this.setDirty()
+  }
+
   getProxy() {
     if (!this.proxy) {
       const self = this
@@ -314,6 +331,12 @@ export class WebView extends Node {
         },
         set factor(value) {
           self.factor = value
+        },
+        get doubleside() {
+          return self.doubleside
+        },
+        set doubleside(value) {
+          self.doubleside = value
         },
       }
       proxy = Object.defineProperties(proxy, Object.getOwnPropertyDescriptors(super.getProxy()))
