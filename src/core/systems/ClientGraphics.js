@@ -28,6 +28,7 @@ function getRenderer() {
     renderer = new THREE.WebGLRenderer({
       powerPreference: 'high-performance',
       antialias: true,
+      alpha: true, // Required for CSS3D WebView occlusion
       // logarithmicDepthBuffer: true,
       // reverseDepthBuffer: true,
     })
@@ -122,6 +123,9 @@ export class ClientGraphics extends System {
       this.resize(this.viewport.offsetWidth, this.viewport.offsetHeight)
     })
     this.viewport.appendChild(this.renderer.domElement)
+    // Ensure canvas is above CSS3D layer for WebView occlusion
+    this.renderer.domElement.style.position = 'relative'
+    this.renderer.domElement.style.zIndex = '1'
     this.resizer.observe(this.viewport)
 
     this.xrWidth = null
