@@ -123,9 +123,9 @@ export class ClientGraphics extends System {
       this.resize(this.viewport.offsetWidth, this.viewport.offsetHeight)
     })
     this.viewport.appendChild(this.renderer.domElement)
-    // Ensure canvas is above CSS3D layer for WebView occlusion
+    // Canvas renders on top via alpha compositing, but pointer events pass through to CSS layer
     this.renderer.domElement.style.position = 'relative'
-    this.renderer.domElement.style.zIndex = '1'
+    this.renderer.domElement.style.pointerEvents = 'none'
     this.resizer.observe(this.viewport)
 
     this.xrWidth = null

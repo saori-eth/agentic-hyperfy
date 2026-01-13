@@ -71,7 +71,7 @@ export function Client({ wsUrl, onSetup }) {
         .App__ui {
           position: absolute;
           inset: 0;
-          z-index: 2;
+          z-index: 1;
           pointer-events: none;
           user-select: none;
           display: ${ui.visible ? 'block' : 'none'};
