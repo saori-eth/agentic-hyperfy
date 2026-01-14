@@ -33,6 +33,14 @@ Certain `three.js` classes and methods are exposed directly in the scripting API
 
 ---
 
+## URL
+
+The standard `URL` class is available for parsing and constructing URLs.
+
+- [`URL`](https://developer.mozilla.org/en-US/docs/Web/API/URL)
+
+---
+
 ## Fetch
 
 The standard `fetch` API is available for making network requests.
