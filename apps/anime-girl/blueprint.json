@@ -1,0 +1,13 @@
+{
+  "name": "anime-girl",
+  "desc": "",
+  "author": "",
+  "model": "./assets/empty.glb",
+  "image": {
+    "url": "./assets/app-icon.png"
+  },
+  "script": "./index.js",
+  "props": {},
+  "preload": false,
+  "public": false
+}
