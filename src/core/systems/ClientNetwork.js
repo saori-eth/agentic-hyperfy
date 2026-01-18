@@ -256,14 +256,41 @@ export class ClientNetwork extends System {
   }
 
   onLocalAppRemoved = data => {
-    const { appName } = data
-    console.log(`[localApps] removed: ${appName}`)
+    const { appName, blueprintId } = data
+    console.log(`[localApps] removed: ${appName}, blueprint: ${blueprintId}`)
 
-    // Remove from collections
+    // Clear asset cache for this app
+    this.world.loader.clearLocalApp?.(appName)
+
+    // Remove blueprint from registry
+    if (blueprintId) {
+      this.world.blueprints.items.delete(blueprintId)
+      this.world.blueprints.emit('remove', blueprintId)
+    }
+
+    // Fallback: Remove any remaining entities using this blueprint
+    // (Server should have already removed them, but this is defensive)
+    if (blueprintId) {
+      const entitiesToRemove = []
+      for (const [id, entity] of this.world.entities.items) {
+        if (entity.data.blueprint === blueprintId) {
+          entitiesToRemove.push(id)
+        }
+      }
+      for (const id of entitiesToRemove) {
+        const entity = this.world.entities.get(id)
+        if (entity) {
+          console.log(`[localApps] removing orphaned entity: ${id}`)
+          entity.destroy(false) // false = not a local action
+        }
+      }
+    }
+
+    // Remove from collections (UI state)
     this.world.collections.removeLocalApp(appName)
 
     // Emit event for UI updates
-    this.world.emit('localAppRemoved', { appName })
+    this.world.emit('localAppRemoved', { appName, blueprintId })
   }
 
   onClose = code => {

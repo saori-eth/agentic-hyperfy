@@ -176,6 +176,27 @@ class LocalApps {
     this.watcher.on('change', filePath => this.scheduleReload(filePath))
     this.watcher.on('add', filePath => this.scheduleReload(filePath))
     this.watcher.on('unlink', filePath => this.scheduleReload(filePath))
+
+    // Add directory event handlers for better rename detection
+    this.watcher.on('addDir', dirPath => {
+      const relativePath = path.relative(this.dir, dirPath)
+      const appName = relativePath.split(path.sep)[0]
+      // Only handle top-level app directories
+      if (appName && appName === relativePath) {
+        console.log(`[localApps] new app directory detected: ${appName}`)
+        this.scheduleReload(dirPath)
+      }
+    })
+
+    this.watcher.on('unlinkDir', dirPath => {
+      const relativePath = path.relative(this.dir, dirPath)
+      const appName = relativePath.split(path.sep)[0]
+      // Only handle top-level app directories
+      if (appName && appName === relativePath) {
+        console.log(`[localApps] app directory removed: ${appName}`)
+        this.scheduleReload(dirPath)
+      }
+    })
   }
 
   scheduleReload(filePath) {
@@ -207,12 +228,48 @@ class LocalApps {
     // Check if the app still exists
     if (!fs.existsSync(blueprintPath)) {
       console.log(`[localApps] ${appName}: removed`)
+
+      // Capture blueprint ID before removal
+      const blueprintId = `app-${appName}`
+
+      // Find and remove all entities using this blueprint
+      const entityIds = []
+      if (this.world?.entities) {
+        for (const [id, entity] of this.world.entities.items) {
+          if (entity.data.blueprint === blueprintId) {
+            entityIds.push(id)
+          }
+        }
+      }
+
+      // Clean up server-side state
       this.blueprints.delete(appName)
       this.list = this.list.filter(c => c.id !== appName)
-      // Notify clients to remove the app
-      if (this.world?.network) {
-        this.world.network.send('localAppRemoved', { appName })
+
+      // Clear loader cache
+      if (this.world?.loader) {
+        this.world.loader.clearLocalApp?.(appName)
       }
+
+      // Remove blueprint from registry
+      if (this.world?.blueprints) {
+        this.world.blueprints.items.delete(blueprintId)
+      }
+
+      // Remove entities from server (broadcasts to all clients)
+      for (const entityId of entityIds) {
+        console.log(`[localApps] removing entity ${entityId} using ${blueprintId}`)
+        this.world.entities.remove(entityId)
+      }
+
+      // Notify clients with enhanced payload
+      if (this.world?.network) {
+        this.world.network.send('localAppRemoved', {
+          appName,
+          blueprintId,
+        })
+      }
+
       return
     }
 
