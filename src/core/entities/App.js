@@ -269,6 +269,9 @@ export class App extends Entity {
   }
 
   modify(data) {
+    // Return early if entity is destroyed (race condition with pending modifications)
+    if (this.destroyed) return
+
     let rebuild
     if (data.hasOwnProperty('blueprint')) {
       this.data.blueprint = data.blueprint
@@ -284,7 +287,7 @@ export class App extends Entity {
     }
     if (data.hasOwnProperty('position')) {
       this.data.position = data.position
-      if (this.data.mover) {
+      if (this.data.mover && this.networkPos) {
         this.networkPos.pushArray(data.position)
       } else {
         rebuild = true
@@ -292,7 +295,7 @@ export class App extends Entity {
     }
     if (data.hasOwnProperty('quaternion')) {
       this.data.quaternion = data.quaternion
-      if (this.data.mover) {
+      if (this.data.mover && this.networkQuat) {
         this.networkQuat.pushArray(data.quaternion)
       } else {
         rebuild = true
@@ -300,7 +303,7 @@ export class App extends Entity {
     }
     if (data.hasOwnProperty('scale')) {
       this.data.scale = data.scale
-      if (this.data.mover) {
+      if (this.data.mover && this.networkSca) {
         this.networkSca.pushArray(data.scale)
       } else {
         rebuild = true
