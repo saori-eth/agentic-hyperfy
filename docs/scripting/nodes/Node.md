@@ -74,10 +74,6 @@ Callback function that is called when the pointer button is pressed down on this
 
 Callback function that is called when the pointer button is released on this node.
 
-### `.cursor`: String
-
-The CSS cursor style to display when hovering over this node (e.g., `'pointer'`, `'grab'`, `'move'`).
-
 ## Examples
 
 ### Pointer Events
