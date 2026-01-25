@@ -151,8 +151,6 @@ export class ClientGraphics extends System {
   }
 
   render() {
-    // Render CSS3D layer first (behind WebGL)
-    this.world.css?.render()
     // Then render WebGL
     if (this.renderer.xr.isPresenting || !this.usePostprocessing) {
       this.renderer.render(this.world.stage.scene, this.world.camera)
@@ -162,6 +160,7 @@ export class ClientGraphics extends System {
     if (this.xrDimensionsNeeded) {
       this.checkXRDimensions()
     }
+    this.emit('render')
   }
 
   commit() {

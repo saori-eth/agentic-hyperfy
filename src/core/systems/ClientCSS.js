@@ -3,8 +3,6 @@ import { CSS3DRenderer } from 'three/examples/jsm/renderers/CSS3DRenderer.js'
 
 import { System } from './System'
 
-const v1 = new THREE.Vector3()
-
 /**
  * ClientCSS System
  *
@@ -30,11 +28,16 @@ export class ClientCSS extends System {
   start() {
     if (!this.elem) return
     this.world.graphics.on('resize', this.onResize)
+    this.world.graphics.on('render', this.onRender)
     this.resize(this.world.graphics.width, this.world.graphics.height)
   }
 
   onResize = () => {
     this.resize(this.world.graphics.width, this.world.graphics.height)
+  }
+
+  onRender = () => {
+    this.render()
   }
 
   resize(width, height) {
@@ -50,19 +53,6 @@ export class ClientCSS extends System {
     this.scene.remove(object3d)
   }
 
-  // Sync CSS objects to their target meshes after all transforms updated
-  lateUpdate(delta) {
-    if (!this.renderer) return
-    for (const objectCSS of this.scene.children) {
-      if (objectCSS.interacting) continue // interaction stabilization
-      objectCSS.target.matrixWorld.decompose(
-        objectCSS.position,
-        objectCSS.quaternion,
-        v1
-      )
-    }
-  }
-
   // Render before WebGL (called from ClientGraphics.commit)
   render() {
     if (!this.renderer) return
@@ -72,6 +62,7 @@ export class ClientCSS extends System {
   destroy() {
     if (this.elem) {
       this.world.graphics.off('resize', this.onResize)
+      this.world.graphics.off('render', this.onRender)
     }
   }
 }
